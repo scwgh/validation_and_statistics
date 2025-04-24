@@ -38,6 +38,57 @@ with st.expander("📘 What is Imprecision Analysis?", expanded=True):
 
     > 💡 Aim for %CVs within your lab's acceptable performance limits (e.g., <5% or <10% depending on the analyte).
     """)
+# --- How --- 
+with st.expander("📘 How to assess imprecision", expanded=True):
+    st.markdown(r"""
+### 📐 Imprecision Metrics Explained
+
+**🔹 Bias**
+
+Bias is the difference between the **mean** of the measured values and the known or **true value**.
+
+\[
+\text{Bias} = \bar{x} - \mu
+\]
+
+Where:
+- \( \bar{x} \) is the mean of the measured values  
+- \( \mu \) is the true or reference value
+
+---
+
+**🔹 Standard Deviation (SD)**
+
+Standard Deviation quantifies the variability of the values around the mean.
+
+\[
+\text{SD} = \sqrt{ \frac{1}{n - 1} \sum_{i=1}^{n} (x_i - \bar{x})^2 }
+\]
+
+Where:
+- \( x_i \) are the individual observations  
+- \( \bar{x} \) is the mean of the observations  
+- \( n \) is the number of observations
+
+---
+
+**🔹 Coefficient of Variation (CV)**
+
+CV expresses the SD as a percentage of the mean, providing a normalized measure of dispersion.
+
+\[
+\text{CV}(\%) = \left( \frac{\text{SD}}{\bar{x}} \right) \times 100
+\]
+
+Where:
+- SD is the standard deviation  
+- \( \bar{x} \) is the mean of the data
+
+---
+
+These metrics are commonly used in analytical method validation and performance monitoring to evaluate the precision and accuracy of measurements.
+""")
+
 
 # --- Instructions ---
 with st.expander("📘 Instructions:"): 

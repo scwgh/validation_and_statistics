@@ -40,54 +40,23 @@ with st.expander("📘 What is Imprecision Analysis?", expanded=True):
     """)
 # --- How --- 
 with st.expander("📘 How to assess imprecision", expanded=True):
-    st.markdown(r"""
-### 📐 Imprecision Metrics Explained
+    st.markdown("### 📐 Imprecision Metrics Explained")
 
-**🔹 Bias**
 
-Bias is the difference between the **mean** of the measured values and the known or **true value**.
+    st.markdown("**🔹 Standard Deviation (SD)**: A measure of the dispersion of individual measurements around the mean. A low standard deviation suggests values are close to the mean; while a high standard deviation indicates values are spread over a wider range. SD is often used to determine if a value is an outlier.")
+    st.latex(r'''\text{SD} = \sqrt{ \frac{1}{n - 1} \sum_{i=1}^{n} (x_i - \bar{x})^2 }''')
 
-\[
-\text{Bias} = \bar{x} - \mu
-\]
+    st.markdown("**🔹 Coefficient of Variation (CV)**: The coefficient of variation (CV) is defined as a ratio of standard deviation to mean. CV should only be used for data which has a meaningful zero and therefore can be applied as a relative comparison between two measurements. The standard deviation expressed as a percentage of the mean.")
+    st.markdown("CV is expressed as a percentage")
+    st.latex(r'''\text{CV}(\%) = \left( \frac{\text{SD}}{\bar{x}} \right) \times 100''')
 
-Where:
-- \( \bar{x} \) is the mean of the measured values  
-- \( \mu \) is the true or reference value
+    st.markdown("Bias is expressed as a percentage of the mean measured value versus the expected value:")
+    st.latex(r"\text{Bias (\%)} = \left( \frac{\bar{x} - \mu}{\mu} \right) \times 100")
 
----
+    st.markdown("""
+    These formulas are commonly used to assess imprecision in analytical methods, providing insight into the variability and reliability of your data.
+    """)
 
-**🔹 Standard Deviation (SD)**
-
-Standard Deviation quantifies the variability of the values around the mean.
-
-\[
-\text{SD} = \sqrt{ \frac{1}{n - 1} \sum_{i=1}^{n} (x_i - \bar{x})^2 }
-\]
-
-Where:
-- \( x_i \) are the individual observations  
-- \( \bar{x} \) is the mean of the observations  
-- \( n \) is the number of observations
-
----
-
-**🔹 Coefficient of Variation (CV)**
-
-CV expresses the SD as a percentage of the mean, providing a normalized measure of dispersion.
-
-\[
-\text{CV}(\%) = \left( \frac{\text{SD}}{\bar{x}} \right) \times 100
-\]
-
-Where:
-- SD is the standard deviation  
-- \( \bar{x} \) is the mean of the data
-
----
-
-These metrics are commonly used in analytical method validation and performance monitoring to evaluate the precision and accuracy of measurements.
-""")
 
 
 # --- Instructions ---

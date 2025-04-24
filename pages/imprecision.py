@@ -27,9 +27,9 @@ with st.expander("📘 What is Imprecision Analysis?", expanded=True):
     Imprecision analysis is used to quantify how **consistent** a method is when measuring the same material multiple times.
 
     *****What types of imprecision do we assess?*****
-    - **Within-run imprecision**: Variation in repeated measurements within a single analytical run.
-    - **Between-run imprecision**: Variation in measurements of the same sample across different runs or days.
-    - **Total imprecision**: Combined variability from both sources.
+    - **Intra-well imprecision**: Variation in repeated measurements within a single well or sample.
+    - **Intra-batch imprecision**: Variation in repeated measurements within a single analytical run.
+    - **Inter-batch imprecision**: Variation in measurements of the same sample across different runs or days.
 
     *****Why do we perform imprecision analysis?*****
     - Verifying analytical precision for method validation.
@@ -49,12 +49,14 @@ with st.expander("📘 Instructions:"):
     1. **Upload your CSV file** – it should contain repeated measurements for the same sample/material across different runs or days.
     2. Make sure your file includes:
     - `Material` (e.g., Control, Patient)
-    - `Level` (e.g., Level 1, Level 2)
-    - `Run` or `Day`
-    - One or more **analyte columns**
+    - `QC Level` (e.g., QC1, QC2),
+    - `Analyser` (e.g., Analyser1, Analyser2)
+    - `Run` or `Day` - including in either short or long date format
+    - One or more **analyte columns**. Please ensure your analyte names are consistent across the file.
     3. Once uploaded, the app will:
-    - Group data by `Material`, `Level`, and `Run`
-    - Calculate within-run, between-run, and total imprecision (CV%)
+    - Group data by `Material`, `QC Level`, and `Run`
+    - Calculate intra-batch, inter-batch, and total imprecision (CV%)
+        - Intra-well imprecision will also be calculated if provided.
     - Output summaries and visualizations for each analyte
 
     ##### ℹ️ Results are reported in terms of **%CV (Coefficient of Variation)**, which reflects variability relative to the mean.

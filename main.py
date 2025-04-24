@@ -62,7 +62,7 @@ st.markdown(
     > For each module, upload your data in CSV format. Ensure your data is structured according to the provided templates, available in the sidebar.
 
     #### 📜 Disclaimer
-    > This app is intended for educational and informational purposes only. The results generated should not be used as a substitute for professional judgment or laboratory standards. Always consult with a qualified professional for laboratory analyses and interpretations.
+    > This app is intended for educational and informational purposes only. Always consult with a qualified professional for laboratory analyses and interpretations.
     
     #### 🛠️ Development, Deployment, and Contact
     > This app was developed using Streamlit and is hosted on GitHub. The source code is available for review and contributions.

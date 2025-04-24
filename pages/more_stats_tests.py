@@ -1,8 +1,8 @@
 import streamlit as st
 import sys
-sys.path.insert(0, '/workspaces/validation_app')  # Adjust if needed
+# sys.path.insert(0, '/workspaces/validation_app')  # Adjust if needed
 
-from vnv_app.pages.statistical_tests import (
+from pages.statistical_tests import (
     bartlett_test, f_test, t_test, cusum, cochran,
     kolmogorov_smirnov, kruskal_wallis, levene_test,
     mann_whitney_u, p_p_plots, q_q_plots, shapiro_wilk, tea, z_test, chi_squared

@@ -130,14 +130,13 @@ if df is not None:
                 st.error("❌ Linear fitting failed due to numerical instability in the data.")
 
         if results_df is not None:
-        st.markdown("---")
-        st.markdown("### 📥 Download Results")
-        st.markdown("Download the standard curve results including fitted values and residuals.")
+            st.markdown("### 📥 Download Results")
+            st.markdown("Download the standard curve results including fitted values and residuals.")
 
-        st.download_button(
-            label="⬇ Download Results",
-            data=results_df.to_csv(index=False).encode('utf-8'),
-            file_name="standard_curve_results.csv",
-            mime="text/csv"
-        )
+            st.download_button(
+                label="⬇ Download Results",
+                data=results_df.to_csv(index=False).encode('utf-8'),
+                file_name="standard_curve_results.csv",
+                mime="text/csv"
+            )
         st.markdown("---")

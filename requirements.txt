@@ -22,11 +22,8 @@ cycler==0.12.1
 debugpy==1.8.13
 decorator==5.2.1
 defusedxml==0.7.1
-entrypoints==0.4
 executing==2.2.0
-Faker==37.1.0
 fastjsonschema==2.21.1
-favicon==0.7.0
 filelock==3.13.1
 fonttools==4.56.0
 fqdn==1.5.1
@@ -34,7 +31,6 @@ fsspec==2024.6.1
 gitdb==4.0.12
 GitPython==3.1.44
 h11==0.14.0
-htbuilder==0.9.0
 httpcore==1.0.7
 httpx==0.28.1
 idna==3.10
@@ -62,9 +58,6 @@ jupyterlab_pygments==0.3.0
 jupyterlab_server==2.27.3
 kaleido==0.2.1
 kiwisolver==1.4.8
-lxml==5.4.0
-Markdown==3.8
-markdownlit==0.0.7
 MarkupSafe==3.0.2
 matplotlib==3.10.1
 matplotlib-inline==0.1.7
@@ -99,7 +92,6 @@ pyarrow==19.0.1
 pycparser==2.22
 pydeck==0.9.1
 Pygments==2.19.1
-pymdown-extensions==10.14.3
 pyparsing==3.2.1
 python-dateutil==2.9.0.post0
 python-json-logger==3.3.0
@@ -120,21 +112,9 @@ six==1.17.0
 smmap==5.0.2
 sniffio==1.3.1
 soupsieve==2.6
-st-annotated-text==4.0.2
-st-theme==1.2.3
 stack-data==0.6.3
 statsmodels==0.14.4
 streamlit==1.44.1
-streamlit-avatar==0.1.3
-streamlit-camera-input-live==0.2.0
-streamlit-card==1.0.2
-streamlit-embedcode==0.1.2
-streamlit-extras==0.6.0
-streamlit-faker==0.0.3
-streamlit-image-coordinates==0.1.9
-streamlit-keyup==0.3.0
-streamlit-toggle-switch==1.0.2
-streamlit-vertical-slider==2.5.5
 sympy==1.13.1
 tenacity==9.1.2
 terminado==0.18.1
@@ -149,7 +129,6 @@ typing_extensions==4.12.2
 tzdata==2025.1
 uri-template==1.3.0
 urllib3==2.3.0
-validators==0.34.0
 watchdog==6.0.0
 wcwidth==0.2.13
 webcolors==24.11.1

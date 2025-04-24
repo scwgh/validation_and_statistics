@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import os
 from utils import apply_app_styling
 
 # --- Page Configuration ---
@@ -19,7 +18,13 @@ st.title("🚀 Limit of Quantitation (LOQ)")
 # --- Method Explanation ---
 with st.expander("📘 What is Limit of Quantitation Analysis?", expanded=True):
     st.markdown("""
+    **Limit of Quantitation (LOQ)** is the lowest amount of analyte in a sample that can be quantitatively determined with suitable precision and accuracy.
     
+    It's typically calculated from blank sample variability using the formula:
+    
+    **LOQ = 10 × standard deviation (SD) of blanks**
+
+    This method helps ensure the reliability of analytical results, particularly in trace-level detection.
     """)
 
 # --- Instructions ---
@@ -28,7 +33,7 @@ with st.expander("📘 Instructions"):
     1. Upload a CSV file with your analyte data.
     2. Ensure the file includes repeated blank samples labeled in the `Material` column.
     3. Select the analyte columns (numeric values expected).
-    4. View the calculated LOD results and visualizations.
+    4. View the calculated LOQ results and visualizations.
     """)
 
 # --- File Upload Function ---
@@ -50,7 +55,7 @@ def upload_data():
 # --- Upload Data ---
 df = upload_data()
 
-# --- Process and Display LOD ---
+# --- Process and Display LOQ ---
 if df is not None:
     # Filter for blank data
     blank_data = df[df['Material'] == 'Blank']
@@ -59,7 +64,7 @@ if df is not None:
     analyte_columns = df.columns[4::3]
 
     # Initialize a dictionary to store results
-    lod_results = {'Analyte': [], 'Mean': [], 'SD': [], '10*SD (LOD)': []}
+    loq_results = {'Analyte': [], 'Mean': [], 'SD': [], '10*SD (LOQ)': []}
 
     for analyte in analyte_columns:
         valid_data = pd.to_numeric(blank_data[analyte], errors='coerce').dropna()
@@ -69,38 +74,38 @@ if df is not None:
 
         mean = round(valid_data.mean(), 5)
         sd = round(valid_data.std(), 5)
-        lod = round(10 * sd, 5)
+        loq = round(10 * sd, 5)
 
-        lod_results['Analyte'].append(analyte)
-        lod_results['Mean'].append(mean)
-        lod_results['SD'].append(sd)
-        lod_results['10*SD (LOD)'].append(lod)
+        loq_results['Analyte'].append(analyte)
+        loq_results['Mean'].append(mean)
+        loq_results['SD'].append(sd)
+        loq_results['10*SD (LOQ)'].append(loq)
 
-    lod_df = pd.DataFrame(lod_results)
+    loq_df = pd.DataFrame(loq_results)
 
-    st.subheader("♾️ LOD Results")
-    st.dataframe(lod_df)
+    st.subheader("📊 LOQ Results")
+    st.dataframe(loq_df)
 
     # Download button
-    lod_csv = lod_df.to_csv(index=False).encode('utf-8')
-    st.download_button("⬇️ Download LOD Results CSV", lod_csv, "lod_results.csv", "text/csv")
+    loq_csv = loq_df.to_csv(index=False).encode('utf-8')
+    st.download_button("⬇️ Download LOQ Results CSV", loq_csv, "loq_results.csv", "text/csv")
 
     # Plotting
-    st.subheader("📈 LOD Scatter Plot")
+    st.subheader("📈 LOQ Scatter Plot")
     fig = px.scatter(
-        lod_df,
+        loq_df,
         x="Analyte",
-        y="10*SD (LOD)",
-        text="10*SD (LOD)",
-        color_discrete_sequence=["darkorange"],
+        y="10*SD (LOQ)",
+        text="10*SD (LOQ)",
+        color_discrete_sequence=["seagreen"],
         size_max=60
     )
 
     fig.update_traces(textposition='top center', marker=dict(size=12))
     fig.update_layout(
-        title="Limit of Detection (LOD) for Analytes",
+        title="Limit of Quantitation (LOQ) for Analytes",
         xaxis_title="Analyte",
-        yaxis_title="LOD (10 × SD)",
+        yaxis_title="LOQ (10 × SD)",
         plot_bgcolor="white",
         font=dict(size=14),
         title_font=dict(size=18),

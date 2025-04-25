@@ -49,20 +49,21 @@ st.markdown(
 
 # --- Loading Spinner and Confirmation ---
 with st.spinner("Loading the analysis tools... Please wait!"):
-    st.success("Analysis tools loaded successfully! 🎉 Let's get started with your validation analysis!")
+    st.success("Analysis tools loaded successfully! 🎉 " \
+    "\n Let's get started with your validation analysis!")
     st.balloons()
 
 # --- About Section ---
 st.markdown(
     """
     ### 📖 About this App
-    > Each section allows you to upload your data using the templates (see below), explore outputs, and export results as needed.
+    > This app is designed to assist laboratory professionals in performing validation and verification analyses. It provides a user-friendly interface for various statistical tests, including ANOVA, regression analysis, and more. For more information on each module, please refer to the sidebar.
 
-    #### 📂 Templates and Data Upload
-    > For each module, upload your data in CSV format. Ensure your data is structured according to the provided templates, available in the sidebar.
-
-    #### 📜 Disclaimer
-    > This app is intended for educational and informational purposes only. Always consult with a qualified professional for laboratory analyses and interpretations.
+    #### 📂 Data Upload and Templates
+    \n For each module, your data must be in CSV format. Ensure your data is structured according to the provided templates, available from the module in the sidebar. 
+    \n It is important that column names (i.e., Date, Material, Analyser, Sample ID) are consistent with the templates to ensure proper analysis. 
+    \n You may insert as many analyte names as required - however, avoid introducing spaces or special characters **(e.g., @ : ; ! , . # < >)** in the column names.
+    \n This app is intended for educational and informational purposes only. Always consult with a qualified professional for laboratory analyses and interpretations.
     
     #### 🛠️ Development, Deployment, and Contact
     > This app was developed using Streamlit and is hosted on GitHub. The source code is available for review and contributions.
@@ -71,25 +72,27 @@ st.markdown(
 )
 
 # --- Available Modules ---
-with st.expander("📖 Which modules are available?", expanded=False):
+with st.expander("📖 Which tests are available?", expanded=False):
     st.markdown(
         """
         This app provides a comprehensive platform for performing various validation and verification analyses in laboratory settings.  
         Use the sidebar to navigate between the available tools.
 
-        ### 📊 Available Analysis Modules
+        ### 📊 Analysis Modules include:
 
         - **Imprecision Analysis**
             - 📊 Intra-Well Imprecision
             - 🧪 Intra-Batch Precision
             - ⚗️ Inter-Batch Precision
-            - 🥼 Total Precision
+            - 🥼 Total Imprecision
 
-        - **Standard Curve and Linearity**
-            - 👨🏻‍🔬 Calibration Curve
+        - **Linearity**
+            - 👨🏻‍🔬 Standard Curve
             - 👩🏽‍🔬 Response Curve
 
-        - 🧪 Limit of Detection (LOD)
+        - **Limit of Detection (LOD)**
+
+        - **Limit of Quantitation (LOQ)**
 
         - **Method Comparison**
             - 🧪 ANOVA

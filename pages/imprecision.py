@@ -24,43 +24,35 @@ st.title("📊 Imprecision Analysis")
 # --- Method Explanation ---
 with st.expander("📘 What is Imprecision Analysis?", expanded=True):
     st.markdown("""
-    Imprecision analysis is used to quantify how **consistent** a method is when measuring the same material multiple times.
-
-    *****What types of imprecision do we assess?*****
+    Imprecision analysis is used to evaluate random error associated with a measurement. Measurement of laboratory analytical error falls into two main categories: " ***systematic error*** " and " ***random error*** ". 
+    \n Systematic errors are predictable problems influencing observations consistently in one direction, while random errors are more unpredictable. Systematic errors are assessed by the bias, while random errors by the imprecision measured by the coefficient of variation (CV, %). 
+    \n Imprecision affects the reproducibility and repeatability of results. Reproducibility is defined as the closeness of the results of successive measurements under changed conditions. Repeatability is the closeness of the results of at least twenty successive measurements under similar conditions. By contrast, bias is the average deviation from a true value with minimal contribution of imprecision while inaccuracy is the deviation of a single measurement from the true value with significant contribution by imprecision. Multiple measurements, at least twenty and preferably forty, are therefore required for calculating imprecision as well as bias.
+    ****What types of imprecision do we assess?****
     - **Intra-well imprecision**: Variation in repeated measurements within a single well or sample.
     - **Intra-batch imprecision**: Variation in repeated measurements within a single analytical run.
     - **Inter-batch imprecision**: Variation in measurements of the same sample across different runs or days.
 
-    *****Why do we perform imprecision analysis?*****
+    ****Why do we perform imprecision analysis?****
     - Verifying analytical precision for method validation.
     - Assessing consistency of quality control materials.
     - Comparing instrument or assay performance.
 
-    > 💡 Aim for %CVs within your lab's acceptable performance limits (e.g., <5% or <10% depending on the analyte).
+    >> 💡  Aim for %CVs within your lab's acceptable performance limits (e.g., <5% or <10% depending on the analyte).
     """)
 # --- How --- 
-with st.expander("📘 How to assess imprecision", expanded=True):
+with st.expander("📘 How to assess imprecision", expanded=False):
     st.markdown("### 📐 Imprecision Metrics Explained")
-
-
     st.markdown("**🔹 Standard Deviation (SD)**: A measure of the dispersion of individual measurements around the mean. A low standard deviation suggests values are close to the mean; while a high standard deviation indicates values are spread over a wider range. SD is often used to determine if a value is an outlier.")
     st.latex(r'''\text{SD} = \sqrt{ \frac{1}{n - 1} \sum_{i=1}^{n} (x_i - \bar{x})^2 }''')
 
-    st.markdown("**🔹 Coefficient of Variation (CV)**: The coefficient of variation (CV) is defined as a ratio of standard deviation to mean. CV should only be used for data which has a meaningful zero and therefore can be applied as a relative comparison between two measurements. The standard deviation expressed as a percentage of the mean.")
-    st.markdown("CV is expressed as a percentage")
+    st.markdown("**🔹 Coefficient of Variation (CV)**: The coefficient of variation (CV) is defined as a ratio of standard deviation to mean. CV should only be used for data which has a meaningful zero and therefore can be applied as a relative comparison between two measurements. It may also be defined as the standard deviation expressed as a percentage of the mean.")
     st.latex(r'''\text{CV}(\%) = \left( \frac{\text{SD}}{\bar{x}} \right) \times 100''')
 
-    st.markdown("Bias is expressed as a percentage of the mean measured value versus the expected value:")
-    st.latex(r"\text{Bias (\%)} = \left( \frac{\bar{x} - \mu}{\mu} \right) \times 100")
-
-    st.markdown("""
-    These formulas are commonly used to assess imprecision in analytical methods, providing insight into the variability and reliability of your data.
-    """)
-
-
+    st.markdown("**🔹 Bias**: Bias is expressed as a percentage of the mean measured value versus the expected value.")
+    st.latex(r'''\text{Bias (\%)} = \left( \frac{\bar{x} - \mu}{\mu} \right) \times 100''')
 
 # --- Instructions ---
-with st.expander("📘 Instructions:"): 
+with st.expander("📘 Instructions:", expanded=False): 
     st.markdown("""
     This tool allows you to assess **intra-well, intra-batch and inter-batch imprecision** across different levels of control or patient materials.
 
@@ -74,8 +66,8 @@ with st.expander("📘 Instructions:"):
     - `Run` or `Day` - including in either short or long date format
     - One or more **analyte columns**. Please ensure your analyte names are consistent across the file.
     3. Once uploaded, the app will:
-    - Group data by `Material`, `QC Level`, and `Run`
-    - Calculate intra-batch, inter-batch, and total imprecision (CV%)
+    - Group data by `Material`, `QC Level`, and `Analyte`
+    - Calculate intra-batch, inter-batch, and total imprecision. 
         - Intra-well imprecision will also be calculated if provided.
     - Output summaries and visualizations for each analyte
 

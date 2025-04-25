@@ -67,7 +67,8 @@ def run():
         --- 
 
         📝 *Tip:* For best results, ensure your dataset has sufficient QC replicates (at least 3 per level) to support reliable analysis.
-        """)
+        📝 *Tip:* To compare results between different lot numbers, make sure to include this detail within your data. If there is not data available in your dataframe, it will skip this step.
+                    """)
 
     # --- File Upload ---
     with st.expander("📤 Upload Your CSV File", expanded=True):

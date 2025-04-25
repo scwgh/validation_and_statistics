@@ -35,10 +35,9 @@ with st.expander("📘 Instructions"):
     4. Click the button below to run the standard curve analysis.
     """)
 
-results_df = None  # Prepare variable outside scope
-df = None
+results_df = None
 
-with st.expander("📤 Upload Your CSV File", expanded=True):
+with st.expander("📄 Upload Your CSV File", expanded=True):
     st.markdown("Upload a CSV containing your analyte data. Ensure it includes the following columns: `Material`, `Analyser`, and `Sample ID`.")
     uploaded_file = st.file_uploader("Choose a file to get started", type=["csv"], label_visibility="collapsed")
     if uploaded_file is not None:
@@ -47,6 +46,7 @@ with st.expander("📤 Upload Your CSV File", expanded=True):
         st.markdown("### 📋 Data Preview")
         st.dataframe(df.head())
     else:
+        df = None
         st.info("Awaiting file upload...")
 
 if df is not None:
@@ -58,27 +58,33 @@ if df is not None:
         options=["μmol/L", "mmol/L", "mg/dL", "g/L", "ng/mL"], 
         index=0
     )
-    st.write(f"Selected unit: {units}")
 
     numeric_columns = df.select_dtypes(include=[np.number]).columns.tolist()
-    if not numeric_columns:
-        st.error("❌ No numeric columns found in the dataset.")
+    if len(numeric_columns) < 2:
+        st.error("❌ Not enough numeric columns found for X and Y selection.")
     else:
-        x_axis = st.selectbox("Select the X-axis (Standard Concentration)", numeric_columns)
-        y_axis = st.selectbox("Select the Y-axis (Measured Value)", numeric_columns)
+        x_axis = st.selectbox("Select the X-axis (e.g., Standard Concentration)", numeric_columns)
 
-        identifier_column = "Sample ID" if "Sample ID" in df.columns else None
-        columns_to_use = [x_axis, y_axis] + ([identifier_column] if identifier_column else [])
-        clean_df = df[columns_to_use].replace([np.inf, -np.inf], np.nan).dropna()
+        # Suggest the next column as the default for Y-axis
+        x_index = numeric_columns.index(x_axis)
+        default_y_index = x_index + 1 
+        y_axis = st.selectbox("Select the Y-axis (e.g., Measured Value)", numeric_columns, index=default_y_index)
+
+        identifier_column = st.selectbox("Optional: Select an identifier column (e.g., Sample ID)", [None] + df.columns.tolist())
+
+        clean_df = df[[x_axis, y_axis] + ([identifier_column] if identifier_column else [])].dropna()
 
         if clean_df.empty:
             st.error("❌ The selected columns contain no valid numeric data.")
         else:
             try:
-                slope, intercept = np.polyfit(clean_df[x_axis], clean_df[y_axis], 1)
-                fitted_values = slope * clean_df[x_axis] + intercept
-                residuals = clean_df[y_axis] - fitted_values
-                r_squared = 1 - (np.sum(residuals**2) / np.sum((clean_df[y_axis] - np.mean(clean_df[y_axis]))**2))
+                x = clean_df[x_axis].to_numpy()
+                y = clean_df[y_axis].to_numpy()
+
+                slope, intercept = np.polyfit(x, y, 1)
+                fitted_values = slope * x + intercept
+                residuals = y - fitted_values
+                r_squared = 1 - (np.sum(residuals**2) / np.sum((y - np.mean(y))**2))
 
                 hover_text = (
                     clean_df[identifier_column].astype(str) + "<br>"
@@ -88,8 +94,8 @@ if df is not None:
 
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
-                    x=clean_df[x_axis],
-                    y=clean_df[y_axis],
+                    x=x,
+                    y=y,
                     mode='markers',
                     name='Data Points',
                     marker=dict(color='blue'),
@@ -97,7 +103,7 @@ if df is not None:
                     hoverinfo='text' if identifier_column else 'x+y'
                 ))
                 fig.add_trace(go.Scatter(
-                    x=clean_df[x_axis],
+                    x=x,
                     y=fitted_values,
                     mode='lines',
                     name=f"Fit: y = {slope:.2f}x + {intercept:.2f}<br>R² = {r_squared:.4f}",
@@ -120,7 +126,7 @@ if df is not None:
                 else:
                     interpretation = "Poor linearity — data may not be reliable for quantitative analysis."
 
-                st.markdown(f"🧠 Interpretation:\n**{interpretation}**")
+                st.markdown(f"🧠 **Interpretation:** \n{interpretation}")
 
                 results_df = clean_df.copy()
                 results_df["Fitted Value"] = fitted_values
@@ -128,15 +134,18 @@ if df is not None:
 
             except np.linalg.LinAlgError:
                 st.error("❌ Linear fitting failed due to numerical instability in the data.")
+            except TypeError:
+                st.error("❌ Ensure X and Y axis selections are numeric and 1D.")
 
-        if results_df is not None:
-            st.markdown("### 📥 Download Results")
-            st.markdown("Download the standard curve results including fitted values and residuals.")
+            if results_df is not None:
+                st.markdown("### 📅 Download Results")
+                st.markdown("Download the standard curve results including fitted values and residuals.")
 
-            st.download_button(
-                label="⬇ Download Results",
-                data=results_df.to_csv(index=False).encode('utf-8'),
-                file_name="standard_curve_results.csv",
-                mime="text/csv"
-            )
-        st.markdown("---")
+                st.download_button(
+                    label="⬇ Download Results",
+                    data=results_df.to_csv(index=False).encode('utf-8'),
+                    file_name="standard_curve_results.csv",
+                    mime="text/csv"
+                )
+
+    st.markdown("---")

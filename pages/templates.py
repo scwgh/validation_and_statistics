@@ -42,28 +42,19 @@ st.markdown(
     #### 📂 Templates and Data Upload
     - For each module, you can upload your data in CSV format. Ensure your data is structured correctly according to the provided templates.
     - 3 templates are provided:
-        - Linearity and Calibration Curve data (including standard data)
-        - Imprecision and Method Comparison data (including QC, EQA and Patient data)
-        - Limit of Detection (LOD) data
 
+        - Imprecision and Method Comparison data ( QC, EQA and Patient data)
+        - Linearity and Calibration data
+        - Limits (LOB, LOD and LOQ) data
+    \n For each module, your data must be in CSV format. Ensure your data is structured according to the provided templates. 
+    \n It is important that column names (i.e., Date, Material, Analyser, Sample ID) are consistent with the templates to ensure proper analysis. 
+    \n You may insert as many analyte names as required - however, avoid introducing spaces or special characters **(e.g., @ : ; ! , . # < >)** in the column names.
     """
 )
 
-# Section: 📈 Linearity and Calibration Template
-st.subheader("📈 Linearity and Calibration Template")
-st.markdown("Use this template to assess linearity and generate calibration curves for analytes across concentration ranges.")
-
-with open("vnv_standard_template.csv", "rb") as file:
-    st.download_button(
-        label="⬇ Download Linearity Template",
-        data=file,
-        file_name="vnv_standard_template.csv",
-        mime="text/csv"
-    )
-
 # Section: 🎯 Imprecision and Method Comparison Template
 st.subheader(" 🎯 Imprecision and Method Comparison Template")
-st.markdown("This template includes QC data for imprecision, as well as patient or EQA data for comparing analytical methods.")
+st.markdown("This template includes may include data for QC, EQA and Patient samples. This file can then be used to assess imprecision and for method comparison.")
 
 with open("vnv_data_template.csv", "rb") as file:
     st.download_button(
@@ -73,14 +64,26 @@ with open("vnv_data_template.csv", "rb") as file:
         mime="text/csv"
     )
 
-# Section: 🧪 Limit of Detection (LOD) Template
-st.subheader("🧪 Limit of Detection (LOD) Template")
-st.markdown("Use this template to estimate the LOD from replicate measurements near the detection threshold.")
+# Section: 📈 Linearity and Calibration Template
+st.subheader("📈 Linearity and Calibration Template")
+st.markdown("Use this template to assess linearity and generate calibration curves for analytes across concentration ranges.")
 
-with open("vnv_lod_template.csv", "rb") as file:
+with open("vnv_linearity_template.csv", "rb") as file:
     st.download_button(
-        label="⬇ Download LOD Template",
+        label="⬇ Download Linearity Template",
         data=file,
-        file_name="vnv_lod_template.csv",
+        file_name="vnv_linearity_template.csv",
+        mime="text/csv"
+    )
+
+# Section: 🧪 Limits Template
+st.subheader("🧪 Limits Template")
+st.markdown("Use this template to estimate the LOB, LOD and LOQ from replicate measurements of blank and samples near the detection threshold.")
+
+with open("vnv_limits_template.csv", "rb") as file:
+    st.download_button(
+        label="⬇ Download Limits Template",
+        data=file,
+        file_name="vnv_limits_template.csv",
         mime="text/csv"
     )

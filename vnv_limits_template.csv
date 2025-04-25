@@ -1,0 +1,11 @@
+Date,Analyser,Material,Sample ID,Analyte1,Analyte1 IS Int,Analyte1 Int,Analyte2,Analyte2 IS Int,Analyte2 Int,Analyte3,Analyte3 IS Int,Analyte3 Int,Analyte4,Analyte4 IS Int,Analyte4 Int,Analyte5,Analyte5 IS Int,Analyte5 Int,Analyte6,Analyte6 IS Int,Analyte6 Int
+DD/MM/YYYY,Analyser1,Blank,Blank1,,,,,,,,,,,,,,,,,,
+,Analyser2,,Blank2,,,,,,,,,,,,,,,,,,
+,,,Blank3,,,,,,,,,,,,,,,,,,
+,,,Blank4,,,,,,,,,,,,,,,,,,
+,,,Blank5,,,,,,,,,,,,,,,,,,
+,,,Blank6,,,,,,,,,,,,,,,,,,
+,,,Blank7,,,,,,,,,,,,,,,,,,
+,,,Blank8,,,,,,,,,,,,,,,,,,
+,,,Blank9,,,,,,,,,,,,,,,,,,
+,,,Blank10,,,,,,,,,,,,,,,,,,

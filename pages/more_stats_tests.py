@@ -20,15 +20,13 @@ if "selected_test" not in st.session_state:
 # Descriptive intro
 with st.expander("📘 Why perform more statistical tests?", expanded=True):
     st.markdown("""
-
     This section provides additional statistical tests commonly used in laboratory validation and verification analysis.
     Use the buttons below to launch the test you're interested in.
+    """)
 
-    ##### 📂 Data Upload Requirements:
-    - All statistical tests require a **CSV file** with your experimental data.
-    - Ensure your data is structured correctly according to the description for each test below.
-
-    ##### 🔎 Test Descriptions:
+with st.expander("📘 How do I know which statistical test to choose?", expanded=False):
+    st.markdown("""
+   
     - **Bartlett's Test** – Assesses the equality of variances across multiple groups. It is sensitive to departures from normality and should only be used when data is approximately normally distributed.
     - **Chi-Squared Test** – Tests the independence of categorical variables or compares observed vs expected frequencies. Commonly used with contingency tables to assess distribution fit.
     - **Cochran's Test** – Used to detect whether a single variance is significantly larger than others in a group. Useful for identifying outliers in precision studies.

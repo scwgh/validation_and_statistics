@@ -1,0 +1,63 @@
+// Choosing a Statistical Test
+digraph {
+	fontsize=10 rankdir=TB
+	A [label="Predictor variable:
+categorical or quantitative?" fillcolor="#E0FFFF" shape=box style=filled]
+	B1 [label=Categorical shape=plaintext]
+	B2 [label=Quantitative shape=plaintext]
+	A -> B1 [constraint=false]
+	A -> B2 [constraint=false]
+	C1 [label="Outcome variable:
+categorical or quantitative?" shape=box]
+	B1 -> C1
+	D1 [label=Categorical shape=plaintext]
+	D2 [label=Quantitative shape=plaintext]
+	C1 -> D1
+	C1 -> D2
+	E1 [label="Choose a
+non-parametric test" fillcolor="#FFCCFF" shape=box style=filled]
+	D1 -> E1
+	E2 [label="Do a comparison
+of means test" fillcolor="#FFCCFF" shape=box style=filled]
+	D2 -> E2
+	F [label="How many groups
+are being compared?" fillcolor="#E0FFFF" shape=box style=filled]
+	E2 -> F
+	G1 [label=Two shape=plaintext]
+	G2 [label="More than two" shape=plaintext]
+	F -> G1
+	F -> G2
+	H1 [label="T-test" fillcolor="#FFCCFF" shape=box style=filled]
+	G1 -> H1
+	H2 [label="How many outcome
+variables?" shape=box]
+	G2 -> H2
+	I1 [label=One shape=plaintext]
+	I2 [label="More than one" shape=plaintext]
+	H2 -> I1
+	H2 -> I2
+	J1 [label=ANOVA fillcolor="#FFCCFF" shape=box style=filled]
+	J2 [label=MANOVA fillcolor="#FFCCFF" shape=box style=filled]
+	I1 -> J1
+	I2 -> J2
+	K1 [label="Outcome variable:
+categorical or quantitative?" shape=box]
+	B2 -> K1
+	L1 [label=Categorical shape=plaintext]
+	L2 [label=Quantitative shape=plaintext]
+	K1 -> L1
+	K1 -> L2
+	M1 [label="Logistic regression" fillcolor="#FFCCFF" shape=box style=filled]
+	L1 -> M1
+	M2 [label="How many predictor
+variables?" shape=box]
+	L2 -> M2
+	N1 [label=One shape=plaintext]
+	N2 [label="More than one" shape=plaintext]
+	M2 -> N1
+	M2 -> N2
+	O1 [label="Simple regression" fillcolor="#FFCCFF" shape=box style=filled]
+	O2 [label="Multiple regression" fillcolor="#FFCCFF" shape=box style=filled]
+	N1 -> O1
+	N2 -> O2
+}

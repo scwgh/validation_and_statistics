@@ -7,121 +7,117 @@ from statsmodels.stats.anova import anova_lm
 from utils import apply_app_styling
 
 def run():
-    # Page title
     st.title("🧪 Multi-Way ANOVA")
 
     with st.expander("📘 What is Multi-Way ANOVA?"):
         st.markdown(""" 
-        Multi-way ANOVA is an extension of one-way ANOVA that allows for the analysis of multiple independent variables (factors) simultaneously. It is used to determine how two or more factors influence a dependent variable and whether there are any interaction effects between these factors.
+        Multi-way ANOVA allows analysis of how multiple independent variables (factors) affect a dependent variable. This includes interactions between factors.
 
-        - **Null hypothesis (H₀)**: All factor levels and interactions have no effect on the dependent variable.
-        - **Alternative hypothesis (H₁)**: At least one factor or interaction has an effect.
-
-        In this app, multi-way ANOVA will allow you to examine the effects of multiple QC levels (Materials), analyzers, or other factors that may be in your data.
+        - **Factors**: Material (QC level), Analyser, Analyte, and optionally LotNo
+        - **Null Hypothesis**: No effect from any factor or interaction
+        - **Alternative**: At least one factor or interaction has an effect
         """)
 
-    with st.expander("📘 Instructions:"):
+    with st.expander("📘 Instructions"):
         st.markdown(""" 
-        1. **Upload your CSV file**  
-        - Click the “📤 Upload CSV File” button.
-        - Ensure your file is in **CSV format** and contains one row per sample.
-        - Required columns:
-            - Material: Identifies the QC level (e.g., QC1, QC2, etc.)
-            - Analyser: The instrument used (optional, but useful for filtering)
-            - Sample ID: Unique identifier for each sample
-            - One or more **analyte columns** with numeric values
-
-        2. **Data Check**  
-        - Once uploaded, the app shows a **preview of your data**.
-        - The analysis will focus only on samples where the Material column starts with “QC”.
-        - Missing analyte values will be automatically excluded from the analysis.
-
-        3. **Select Analyte**  
-        - From the dropdown menu, choose the analyte you want to assess.
-
-        4. **View ANOVA Results**  
-        - If at least two QC levels are present, the app performs a multi-way ANOVA.
-        - The output includes:
-            - 📊 An ANOVA summary table
-            - 📈 A violin plot showing data distribution by QC level
-            - ✅ Interpretation of the **p-value**
-
-        5. **Interpret Your Results**  
-        - A **p-value < 0.05** suggests a statistically significant difference between at least two factor levels or their interaction.
-        - Use this to evaluate analytical stability or QC performance drift.
+        1. Upload a CSV with:
+            - Material
+            - Analyser
+            - Sample ID
+            - One or more numeric analyte columns
+            - (Optional) LotNo
+        2. The app will reshape the data and perform multi-way ANOVA using all factors.
         """)
 
-    # --- File Upload ---
     with st.expander("📤 Upload Your CSV File", expanded=True):
-        st.markdown("Upload a CSV containing your analyte data. Ensure it includes the following columns: `Material`, `Analyser`, and `Sample ID`.")
-        uploaded_file = st.file_uploader("Choose a file to get started", type=["csv"])
+        uploaded_file = st.file_uploader("Upload your CSV", type=["csv"])
 
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
         st.subheader("📋 Raw Data Preview")
         st.dataframe(df.head())
 
-        # Filter to only include rows where Material starts with "QC"
+        # Keep rows where Material starts with "QC"
         df_qc = df[df['Material'].astype(str).str.startswith("QC")].copy()
 
         if df_qc.empty:
             st.warning("No QC data found. Ensure 'Material' column contains values like 'QC1', 'QC2', etc.")
-        elif 'Analyser' not in df.columns or 'Material' not in df.columns:
-            st.error("The CSV must contain 'Material' and 'Analyser' columns.")
-        else:
-            # Dynamically select analyte columns
-            analyte_columns = [
-                col for col in df.columns
-                if col not in ['Material', 'Analyser', 'Sample ID']
-                and pd.api.types.is_numeric_dtype(df[col])
-            ]
-            selected_analyte = st.selectbox("🔎 Select Analyte to Compare Across QCs", analyte_columns)
+            return
 
-            # Drop rows with missing analyte values
-            subset = df_qc[['Material', 'Analyser', selected_analyte]].dropna()
+        required_columns = {'Material', 'Analyser', 'Sample ID'}
+        if not required_columns.issubset(df_qc.columns):
+            st.error("Missing one or more required columns: 'Material', 'Analyser', 'Sample ID'")
+            return
 
-            if subset['Material'].nunique() < 2:
-                st.warning("Not enough QC levels to perform ANOVA.")
-            else:
-                try:
-                    # Perform multi-way ANOVA with 'Material' and 'Analyser' as factors
-                    model = ols(f'Q("{selected_analyte}") ~ C(Material) + C(Analyser) + C(Material):C(Analyser)', data=subset).fit()
-                    anova_table = anova_lm(model, typ=2)
-                    p_values = anova_table['PR(>F)']
+        # Identify analyte columns
+        exclude_cols = {'Material', 'Analyser', 'Sample ID', 'LotNo'}
+        analyte_cols = [col for col in df_qc.columns if col not in exclude_cols and pd.api.types.is_numeric_dtype(df_qc[col])]
 
-                    # Display ANOVA table
-                    st.subheader("📊 ANOVA Summary")
-                    st.dataframe(anova_table.round(4))
-                    
-                    # Interpretation of results
-                    for factor in ['C(Material)', 'C(Analyser)', 'C(Material):C(Analyser)']:
-                        p_value = p_values[factor]
-                        st.markdown(f"**P-value for {factor}:** `{p_value:.4f}`")
-                        st.markdown(f"**Significant effect?** {'✅ Yes' if p_value < 0.05 else '❌ No'}")
+        if not analyte_cols:
+            st.error("No numeric analyte columns found.")
+            return
 
-                    # Violin plot
-                    st.subheader("🎻 Violin Plot")
-                    fig = px.violin(
-                        subset,
-                        x='Material',
-                        y=selected_analyte,
-                        box=True,
-                        points='all',
-                        color='Analyser',
-                        title=f"Distribution of {selected_analyte} by QC Level and Analyser",
-                        labels={'Material': 'QC Level', selected_analyte: 'Concentration', 'Analyser': 'Instrument'},
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
+        # Melt data into long format
+        id_vars = ['Material', 'Analyser', 'Sample ID']
+        if 'LotNo' in df_qc.columns:
+            id_vars.append('LotNo')
+        df_long = df_qc.melt(id_vars=id_vars, value_vars=analyte_cols,
+                             var_name='Analyte', value_name='Value').dropna()
 
-                    # Download ANOVA table
-                    csv_buffer = BytesIO()
-                    anova_table.to_csv(csv_buffer)
-                    st.download_button(
-                        "⬇ Download ANOVA Table",
-                        data=csv_buffer.getvalue(),
-                        file_name=f"anova_{selected_analyte}_results.csv",
-                        mime="text/csv"
-                    )
+        st.subheader("📊 Long Format Data")
+        st.dataframe(df_long.head())
 
-                except Exception as e:
-                    st.error(f"Error performing ANOVA: {e}")
+        # Ensure enough levels
+        if df_long['Material'].nunique() < 2:
+            st.warning("Not enough QC levels for ANOVA.")
+            return
+
+        # Build dynamic formula
+        factors = ['C(Material)', 'C(Analyser)', 'C(Analyte)']
+        if 'LotNo' in df_qc.columns:
+            factors.append('C(LotNo)')
+
+        interactions = [f"{a}:{b}" for i, a in enumerate(factors) for b in factors[i+1:]]
+        formula = "Value ~ " + " + ".join(factors + interactions)
+
+        try:
+            model = ols(formula, data=df_long).fit()
+            anova_table = anova_lm(model, typ=2)
+
+            st.subheader("📈 ANOVA Summary Table")
+            st.dataframe(anova_table.round(4))
+
+            # Interpretation
+            p_values = anova_table['PR(>F)']
+            for factor in anova_table.index:
+                p = p_values[factor]
+                st.markdown(f"**{factor}** — p-value: `{p:.4f}` → {'✅ Significant' if p < 0.05 else '❌ Not Significant'}")
+
+            # Violin plot
+            st.subheader("🎻 Violin Plot")
+            color_by = 'LotNo' if 'LotNo' in df_qc.columns else 'Analyser'
+            fig = px.violin(
+                df_long,
+                x="Material",
+                y="Value",
+                color=color_by,
+                box=True,
+                points="all",
+                facet_col="Analyte",
+                category_orders={"Material": sorted(df_long["Material"].unique())},
+                title="Distribution by QC Level and Analyte"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Download ANOVA table
+            csv_buffer = BytesIO()
+            anova_table.to_csv(csv_buffer)
+            st.download_button(
+                "⬇ Download ANOVA Table",
+                data=csv_buffer.getvalue(),
+                file_name="multiway_anova_results.csv",
+                mime="text/csv"
+            )
+
+        except Exception as e:
+            st.error(f"Error during ANOVA: {e}")

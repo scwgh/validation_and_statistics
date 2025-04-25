@@ -1,0 +1,12 @@
+Date,Test,Analyser,Material,Sample ID,"Analyte (e.g., Tau)",Analyte1,Analyte2,Analyte3,Analyte4,Analyte5,Analyte6,Analyte7,Analyte8,Analyte9,Analyte10,Analyte11,Analyte12,Analyte13,Analyte14,Analyte15
+01/01/2025,Imprecision_Intra_Well,Analyser1,Blank,,,,,,,,,,,,,,,,,
+,Imprecision_Intra_Batch,Analyser2,QC1,,,,,,,,,,,,,,,,,
+,Imprecision_Inter_Batch,,QC2,,,,,,,,,,,,,,,,,
+,Method_Comparison,,QC3,,,,,,,,,,,,,,,,,
+,,,Standard1,,,,,,,,,,,,,,,,,
+,,,Standard2,,,,,,,,,,,,,,,,,
+,,,Standard3,,,,,,,,,,,,,,,,,
+,,,Standard4,,,,,,,,,,,,,,,,,
+,,,Standard5,,,,,,,,,,,,,,,,,
+,,,Patient,,,,,,,,,,,,,,,,,
+,,,EQA,,,,,,,,,,,,,,,,,

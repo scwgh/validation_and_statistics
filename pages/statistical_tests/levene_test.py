@@ -29,38 +29,41 @@ def run():
     if uploaded_file is not None:
         try:
             df = pd.read_csv(uploaded_file)
-
-            material_col = df.columns[3]
-            analyte_cols = df.columns[5:]
-            df[material_col] = df[material_col].astype(str)
-
             st.subheader("📋 Raw Data Preview")
             st.dataframe(df.head())
 
-            if st.button("Run Levene’s Test"):
-                for analyte in analyte_cols:
-                    st.markdown(f"### 🔬 Analyte: **{analyte}**")
+            with st.form("selection_form"):
+                material_col = st.selectbox("Select the Material (QC Level) column", df.columns)
+                analyte_cols = st.multiselect("Select the Analyte columns to test", df.select_dtypes(include=[np.number]).columns)
 
-                    subset = df[[material_col, analyte]].dropna()
+                submitted = st.form_submit_button("Run Levene’s Test")
 
-                    if subset.empty or subset[material_col].nunique() < 2:
-                        st.warning(f"Not enough groups to compare for {analyte}.")
-                        continue
+            if submitted:
+                if not analyte_cols or not material_col:
+                    st.warning("Please select both a material column and at least one analyte.")
+                else:
+                    for analyte in analyte_cols:
+                        st.markdown(f"---\n### 🔬 Analyte: **{analyte}**")
+                        subset = df[[material_col, analyte]].dropna()
 
-                    try:
-                        groups = [group[analyte].values for _, group in subset.groupby(material_col)]
-                        stat, p_value = levene(*groups)
+                        if subset.empty or subset[material_col].nunique() < 2:
+                            st.warning(f"Not enough QC levels to compare for {analyte}.")
+                            continue
 
-                        st.write(f"**Levene’s Test Statistic:** {stat:.4f}")
-                        st.write(f"**p-value:** {p_value:.4f}")
+                        try:
+                            # Get values by group (QC1 to QC5 etc.)
+                            groups = [group[analyte].values for _, group in subset.groupby(material_col)]
 
-                        if p_value < 0.05:
-                            st.error("❌ Significant differences in variance detected.")
-                        else:
-                            st.success("✅ No significant differences in variance detected.")
+                            stat, p_value = levene(*groups)
 
-                    except Exception as e:
-                        st.error(f"{analyte}: Error performing Levene’s test — {e}")
+                            st.write(f"**Levene’s Test Statistic:** {stat:.4f}")
+                            st.write(f"**p-value:** {p_value:.4f}")
 
+                            if p_value < 0.05:
+                                st.error("❌ Significant differences in variance detected.")
+                            else:
+                                st.success("✅ No significant differences in variance detected.")
+                        except Exception as e:
+                            st.error(f"Error testing {analyte}: {e}")
         except Exception as e:
             st.error(f"⚠️ Error loading data: {e}")

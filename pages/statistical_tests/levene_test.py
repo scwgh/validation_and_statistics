@@ -23,47 +23,49 @@ def run():
             2. The test will compare **each analyte’s variance across QC levels**.
         """)
 
-    with st.expander("📤 Upload Your CSV File", expanded=True):
-        uploaded_file = st.file_uploader("Upload your CSV", type=["csv"])
+    with st.expander("📄 Upload Your CSV File", expanded=True):
+        st.markdown("Upload a CSV containing your analyte data. Ensure it includes the following columns: `Material`, `Analyser`, and `Sample ID`.")
+        uploaded_file = st.file_uploader("Choose a file to get started", type=["csv"], label_visibility="collapsed")
+        if uploaded_file is not None:
+            df = pd.read_csv(uploaded_file)
+            st.success("✅ File uploaded successfully!")
+            st.markdown("### 📋 Data Preview")
+            st.dataframe(df.head())
+        else:
+            df = None
+            st.info("Awaiting file upload...")
+            uploaded_file = st.file_uploader("Upload your CSV", type=["csv"])
 
     if uploaded_file is not None:
         try:
-            df = pd.read_csv(uploaded_file)
-            st.subheader("📋 Raw Data Preview")
-            st.dataframe(df.head())
 
             with st.form("selection_form"):
-                material_col = st.selectbox("Select the Material (QC Level) column", df.columns)
-                analyte_cols = st.multiselect("Select the Analyte columns to test", df.select_dtypes(include=[np.number]).columns)
+                group_col = st.selectbox("Select the column that defines subgroups (e.g., Run, Instrument, Batch)", df.columns)
+                material_col = st.selectbox("Select the Material column (e.g., QC1–QC5)", df.columns)
+                analyte_col = st.selectbox("Select the Analyte column", df.select_dtypes(include=[np.number]).columns)
 
+                selected_material = st.selectbox("Select a specific material to analyze", sorted(df[material_col].dropna().unique()))
                 submitted = st.form_submit_button("Run Levene’s Test")
 
             if submitted:
-                if not analyte_cols or not material_col:
-                    st.warning("Please select both a material column and at least one analyte.")
+                filtered_df = df[df[material_col] == selected_material][[group_col, analyte_col]].dropna()
+
+                if filtered_df[group_col].nunique() < 2:
+                    st.warning("You need at least two groups to compare variances.")
                 else:
-                    for analyte in analyte_cols:
-                        st.markdown(f"---\n### 🔬 Analyte: **{analyte}**")
-                        subset = df[[material_col, analyte]].dropna()
+                    try:
+                        groups = [group[analyte_col].values for _, group in filtered_df.groupby(group_col)]
+                        stat, p_value = levene(*groups)
 
-                        if subset.empty or subset[material_col].nunique() < 2:
-                            st.warning(f"Not enough QC levels to compare for {analyte}.")
-                            continue
+                        st.markdown(f"---\n### 🔬 Analyte: **{analyte_col}** — Material: **{selected_material}**")
+                        st.write(f"**Levene’s Test Statistic:** {stat:.4f}")
+                        st.write(f"**p-value:** {p_value:.4f}")
 
-                        try:
-                            # Get values by group (QC1 to QC5 etc.)
-                            groups = [group[analyte].values for _, group in subset.groupby(material_col)]
-
-                            stat, p_value = levene(*groups)
-
-                            st.write(f"**Levene’s Test Statistic:** {stat:.4f}")
-                            st.write(f"**p-value:** {p_value:.4f}")
-
-                            if p_value < 0.05:
-                                st.error("❌ Significant differences in variance detected.")
-                            else:
-                                st.success("✅ No significant differences in variance detected.")
-                        except Exception as e:
-                            st.error(f"Error testing {analyte}: {e}")
+                        if p_value < 0.05:
+                            st.error("❌ Significant differences in variance detected between groups.")
+                        else:
+                            st.success("✅ No significant differences in variance detected between groups.")
+                    except Exception as e:
+                        st.error(f"Error performing Levene’s test: {e}")
         except Exception as e:
-            st.error(f"⚠️ Error loading data: {e}")
+            st.error(f"⚠️ Error loading file: {e}")

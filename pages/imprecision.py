@@ -40,7 +40,7 @@ with st.expander("📘 What is Imprecision Analysis?", expanded=True):
     >> 💡  Aim for %CVs within your lab's acceptable performance limits (e.g., <5% or <10% depending on the analyte).
     """)
 # --- How --- 
-with st.expander("📘 How to assess imprecision", expanded=False):
+with st.expander("📘 Imprecision Metrics Explained:", expanded=False):
     st.markdown("### 📐 Imprecision Metrics Explained")
     st.markdown("**🔹 Standard Deviation (SD)**: A measure of the dispersion of individual measurements around the mean. A low standard deviation suggests values are close to the mean; while a high standard deviation indicates values are spread over a wider range. SD is often used to determine if a value is an outlier.")
     st.latex(r'''\text{SD} = \sqrt{ \frac{1}{n - 1} \sum_{i=1}^{n} (x_i - \bar{x})^2 }''')
@@ -61,7 +61,7 @@ with st.expander("📘 Instructions:", expanded=False):
     1. **Upload your CSV file** – it should contain repeated measurements for the same sample/material across different runs or days.
     2. Make sure your file includes:
     - `Material` (e.g., Control, Patient)
-    - `QC Level` (e.g., QC1, QC2),
+    - `QC Level` (e.g., QC1, QC2, QC3),
     - `Analyser` (e.g., Analyser1, Analyser2)
     - `Run` or `Day` - including in either short or long date format
     - One or more **analyte columns**. Please ensure your analyte names are consistent across the file.

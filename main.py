@@ -54,25 +54,28 @@ with st.spinner("Loading the analysis tools... Please wait!"):
     st.balloons()
 
 # --- About Section ---
-st.markdown(
-    """
-    ### 📖 About this App
-    > This app is designed to assist laboratory professionals in performing validation and verification analyses. It provides a user-friendly interface for various statistical tests, including ANOVA, regression analysis, and more. For more information on each module, please refer to the sidebar.
-
-    #### 📂 Data Upload and Templates
+with st.expander("📖 About this App", expanded=True):
+    st.markdown(
+        """
+        ### 📖 About this App
+        > This app is designed to assist laboratory professionals in performing validation and verification analyses. It provides a user-friendly interface for various statistical tests, including ANOVA, regression analysis, and more. For more information on each module, please refer to the sidebar.
+        """)
+with st.expander("📂 Data Upload and Templates", expanded=False):
+    st.markdown("""### 📂 Data Upload and Templates
     \n For each module, your data must be in CSV format. Ensure your data is structured according to the provided templates, available from the module in the sidebar. 
     \n It is important that column names (i.e., Date, Material, Analyser, Sample ID) are consistent with the templates to ensure proper analysis. 
     \n You may insert as many analyte names as required - however, avoid introducing spaces or special characters **(e.g., @ : ; ! , . # < >)** in the column names.
     \n This app is intended for educational and informational purposes only. Always consult with a qualified professional for laboratory analyses and interpretations.
-    
+    """)
+with st.expander("🛠️ Development, Deployment, and Contact", expanded=False):
+    st.markdown("""
     #### 🛠️ Development, Deployment, and Contact
     > This app was developed using Streamlit and is hosted on GitHub. The source code is available for review and contributions.
     ---
-    """
-)
+    """)
 
 # --- Available Modules ---
-with st.expander("📖 Which tests are available?", expanded=False):
+with st.expander("📖 Which modules are available?", expanded=False):
     st.markdown(
         """
         This app provides a comprehensive platform for performing various validation and verification analyses in laboratory settings.  
@@ -125,7 +128,7 @@ st.markdown(
     ---
     <footer>
         <p style='text-align: center;'>
-            &copy; 2023 Validation and Verification Analysis App. All rights reserved.
+            &copy; 2025 Validation and Statistical Analysis App. All rights reserved.
         </p>
     </footer>
     """, 

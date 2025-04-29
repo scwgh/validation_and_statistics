@@ -16,7 +16,7 @@ apply_app_styling()
 
 st.title("📏 Linearity")
 
-with st.expander("📘 Why perform Linearity", expanded=True):
+with st.expander("📘 Why perform Linearity?", expanded=True):
     st.markdown("""
     **Linearity** refers to the ability of an analytical method to produce results that are directly proportional to the concentration of the analyte in the sample.
     It is a critical aspect of method validation, ensuring that the method provides accurate and reliable results across the entire range of concentrations.
@@ -27,7 +27,7 @@ with st.expander("📘 Why perform Linearity", expanded=True):
     - **Residual Analysis**
     """)
 
-with st.expander("📘 Instructions"):
+with st.expander("📘 Instructions:"):
     st.markdown("""
     1. Upload a CSV file containing your standard curve data.
     2. Ensure the file includes columns for `Concentration`, `Response`, and optionally `Identifier`.
@@ -37,7 +37,7 @@ with st.expander("📘 Instructions"):
 
 results_df = None
 
-with st.expander("📄 Upload Your CSV File", expanded=True):
+with st.expander("📄 Upload Your CSV File:", expanded=True):
     st.markdown("Upload a CSV containing your analyte data. Ensure it includes the following columns: `Material`, `Analyser`, and `Sample ID`.")
     uploaded_file = st.file_uploader("Choose a file to get started", type=["csv"], label_visibility="collapsed")
     if uploaded_file is not None:
@@ -50,7 +50,7 @@ with st.expander("📄 Upload Your CSV File", expanded=True):
         st.info("Awaiting file upload...")
 
 if df is not None:
-    st.subheader("📊 Data Preview")
+    st.subheader("📊 Data Preview:")
     st.dataframe(df)
 
     units = st.selectbox(

@@ -13,7 +13,7 @@ apply_app_styling()
 st.title("♾️ Limits")
 
 # --- Method Explanation ---
-with st.expander("📘 Why do we consider limits?", expanded=True):
+with st.expander("📘 What are limits?", expanded=True):
     st.markdown("""
     It is important to characterise the analytical performance of a laboratory assay to determine if it is "_fit for purpose_". This includes understanding the limits of detection (LOD), quantification (LOQ), and blank (LOB) for the analytes of interest. 
     \n LOB and LOD are important to discriminate between the presence or absence of an analyte; whereas LOQ is important for clinical diagnosis and management. 
@@ -159,8 +159,14 @@ if df is not None and st.button("Calculate Limit of Detection (LOD) & Limit of Q
     calculate_lod_loq(df)
 
 # --- Optional Reference Section ---
-with st.expander("📄 Reference"):
+with st.expander("📄 References"):
     st.markdown("""
     **Armbruster, D.A. and Pry, T. (2008)**, *Limit of Blank, Limit of Detection and Limit of Quantitation*, The Clinical biochemist. Reviews, 29 Suppl 1(Suppl 1), S49–S52
-    [PMC2556583](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2556583/)
+    (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2556583/)
     """)
+    st.markdown("""
+    **Pum, J. (2019)**, *Chapter Six - A practical guide to validation and verification of analytical methods in the clinical laboratory*, Advances in Clinical Chemistry: Volume 90, pp. 215-281.
+    (https://www.sciencedirect.com/science/article/pii/S006524231930006X)
+    """)
+    # st.markdown("""
+    #             **McMillan**""")

@@ -34,38 +34,36 @@ def run():
         else:
             df = None
             st.info("Awaiting file upload...")
-            uploaded_file = st.file_uploader("Upload your CSV", type=["csv"])
 
-    if uploaded_file is not None:
-        try:
+    if df is not None:
+        material_options = df['Material'].unique()
+        analyte_options = [col for col in df.columns if col not in ['Date', 'Material', 'Sample ID']]
 
-            with st.form("selection_form"):
-                group_col = st.selectbox("Select the column that defines subgroups (e.g., Run, Instrument, Batch)", df.columns)
-                material_col = st.selectbox("Select the Material column (e.g., QC1–QC5)", df.columns)
-                analyte_col = st.selectbox("Select the Analyte column", df.select_dtypes(include=[np.number]).columns)
+        selected_material = st.selectbox("Choose Material", material_options)
+        selected_analyte = st.selectbox("Choose Analyte", analyte_options)
 
-                selected_material = st.selectbox("Select a specific material to analyze", sorted(df[material_col].dropna().unique()))
-                submitted = st.form_submit_button("Run Levene’s Test")
+        filtered_df = df[df['Material'] == selected_material].copy()
 
-            if submitted:
-                filtered_df = df[df[material_col] == selected_material][[group_col, analyte_col]].dropna()
+        if not filtered_df.empty:
+            # Ensure analyte values are numeric
+            filtered_df[selected_analyte] = pd.to_numeric(filtered_df[selected_analyte], errors='coerce')
+            filtered_df = filtered_df.dropna(subset=[selected_analyte])
 
-                if filtered_df[group_col].nunique() < 2:
-                    st.warning("You need at least two groups to compare variances.")
+            # Group by Sample ID
+            grouped = filtered_df.groupby('Sample ID')[selected_analyte].apply(list)
+
+            if len(grouped) < 2:
+                st.error("Need at least two groups with numeric values for Levene's test.")
+            elif grouped.apply(len).gt(1).all():
+                stat, p = levene(*grouped.tolist())
+                st.write(f"**Levene’s Test Statistic:** {stat:.3f}")
+                st.write(f"**p-value:** {p:.4f}")
+                if p < 0.05:
+                    st.warning("Variances are significantly different (p < 0.05)")
                 else:
-                    try:
-                        groups = [group[analyte_col].values for _, group in filtered_df.groupby(group_col)]
-                        stat, p_value = levene(*groups)
+                    st.success("No significant difference in variances (p ≥ 0.05)")
+            else:
+                st.error("Not enough data points per group for Levene's test.")
 
-                        st.markdown(f"---\n### 🔬 Analyte: **{analyte_col}** — Material: **{selected_material}**")
-                        st.write(f"**Levene’s Test Statistic:** {stat:.4f}")
-                        st.write(f"**p-value:** {p_value:.4f}")
-
-                        if p_value < 0.05:
-                            st.error("❌ Significant differences in variance detected between groups.")
-                        else:
-                            st.success("✅ No significant differences in variance detected between groups.")
-                    except Exception as e:
-                        st.error(f"Error performing Levene’s test: {e}")
-        except Exception as e:
-            st.error(f"⚠️ Error loading file: {e}")
+if __name__ == "__main__":
+    run()

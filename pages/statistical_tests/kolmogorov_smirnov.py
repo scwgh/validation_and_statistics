@@ -47,7 +47,7 @@ def run():
         st.write("""
             
                  
-            \n But why should you be care?
+            \n But why should you care?
             \n The K-S test has an extremely attractive feature: the test statistic itself does not depend on the cumulative distribution. It is also an exact test (by contrast, the Chi-squared test depends on an adequate sample size for the approximations to be valid).
             \n The K-S test is defined by:
             \n - **Null hypothesis (H₀)**: The data follows the specified distribution.

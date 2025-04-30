@@ -13,26 +13,15 @@ def run():
     with st.expander("📘 What is One-Way ANOVA?"):
         st.markdown("""ANOVA, which stands for **Analysis of Variance**, is a statistical method used to determine whether there are any statistically significant differences between the means of three or more independent groups.
 
-        In a **one-way ANOVA**, the analysis is performed using a single independent variable (or factor), such as QC level (e.g., QC1, QC2, QC3), and examines how this factor influences a continuous dependent variable (e.g., analyte concentration).
+        \n In a **one-way ANOVA**, the analysis is performed using a single independent variable (or factor), such as QC level (e.g., QC1, QC2, QC3), and examines how this factor influences a continuous dependent variable (e.g., analyte concentration).
 
-        The core idea is to compare the **variation between groups** to the **variation within groups**. If the variation between groups is significantly larger than the variation within groups, it suggests that the group means are not all the same.
+        \n The core idea is to compare the **variation between groups** to the **variation within groups**. If the variation between groups is significantly larger than the variation within groups, it suggests that the group means are not all the same.
 
-        - **Null hypothesis (H₀)**: All group means are equal.
-        - **Alternative hypothesis (H₁)**: At least one group mean is different.
+        \n - **Null hypothesis (H₀)**: All group means are equal.
+        \n - **Alternative hypothesis (H₁)**: At least one group mean is different.
 
-        The result is quantified using a **p-value**. A p-value less than 0.05 typically indicates a statistically significant difference between groups.
-        In the context of laboratory quality control, ANOVA helps determine if there is a **statistical difference in measured values across different QC materials**. 
-        For example:
-        - Is the concentration of a certain analyte measured consistently across QC1, QC2, and QC3?
-        - Are results from different runs or batches statistically distinguishable?
-
-        Using ANOVA allows you to:
-        - Detect systematic shifts or drifts in QC levels.
-        - Verify consistency and stability in analytical performance.
-        - Support method validation or troubleshooting by quantifying variability.
-
-        This app simplifies the process by allowing you to upload your results, select an analyte, and instantly see whether there's a significant difference in concentration between QC levels.
-    """)
+        \n The result is quantified using a **p-value**. A p-value less than 0.05 typically indicates a statistically significant difference between groups.
+        \n In this app, we will use one-way ANOVA to assess the differences in analyte concentrations across different QC levels. This can help identify potential analytical stability issues or QC performance drift. """)
 
     with st.expander("📘 Instructions:"):
         st.markdown("""

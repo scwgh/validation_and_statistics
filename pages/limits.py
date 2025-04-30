@@ -55,7 +55,7 @@ def upload_data():
         if uploaded_file:
             df = pd.read_csv(uploaded_file)
             st.success("✅ File uploaded successfully!")
-            st.markdown("### 📋 Data Preview")
+            st.markdown("### 📖 Data Preview")
             st.dataframe(df.head())
             return df
         else:
@@ -159,7 +159,7 @@ if df is not None and st.button("Calculate Limit of Detection (LOD) & Limit of Q
     calculate_lod_loq(df)
 
 # --- Optional Reference Section ---
-with st.expander("📄 References"):
+with st.expander("📚 References"):
     st.markdown("""
     **Armbruster, D.A. and Pry, T. (2008)**, *Limit of Blank, Limit of Detection and Limit of Quantitation*, The Clinical biochemist. Reviews, 29 Suppl 1(Suppl 1), S49–S52
     (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2556583/)

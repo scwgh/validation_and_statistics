@@ -21,7 +21,7 @@ body, .stApp {
 /* Main content containers */
 .block-container {
    padding: 2rem;
-   background-color: #ffffff;
+   background-color: #FFFFFF;
 }
 
 /* Headings */
@@ -78,10 +78,10 @@ div[data-testid="stExpander"] summary {
 /* Custom button styling */
 .custom-button {
    padding: 0.6rem 1.2rem;
-   font-size: 1.1rem;
+   font-size: 1.0rem;
    border-radius: 10px;
-   border: 1px solid #FF6F61;
-   background-color: #FF6F61;
+   border: 1px solid #7c87ff;
+   background-color: #5a7df1;
    color: white;
    font-weight: 600;
    cursor: pointer;
@@ -89,8 +89,8 @@ div[data-testid="stExpander"] summary {
 }
 
 .custom-button:hover {
-   background-color: #ff847c;
-   border-color: #ff847c;
+   background-color: #7c87ff;
+   border-color: #5a7df1;
 }
 
 .custom-container {

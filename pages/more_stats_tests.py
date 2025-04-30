@@ -22,6 +22,7 @@ with st.expander("📘 Why perform more statistical tests?", expanded=True):
     st.markdown("""
     This section provides additional statistical tests commonly used in laboratory validation and verification analysis.
     Use the buttons below to launch the test you're interested in.
+    \n **Disclaimer**: This section is **in development** and some of the features below may be prone to error. If you have any issues, please report them on the GitHub repository.
     """)
 
 with st.expander("📘 How do I know which statistical test to choose?", expanded=False):
@@ -40,10 +41,8 @@ with st.expander("📘 How do I know which statistical test to choose?", expande
     - **Q-Q Plots** – Graphical tools to assess if a dataset follows a specified distribution (e.g., normal). Points should fall along the reference line if the data is normally distributed.
     - **Shapiro-Wilk Test** – Tests whether a sample comes from a normally distributed population. Often used as a preliminary check before performing parametric tests.
     - **T-test** – Compares the means of two independent groups to determine if they are significantly different. Assumes normally distributed data with equal variances.
-    - **Total Allowable Error (TEa)** – Evaluates whether the total observed error in a method is within acceptable clinical or regulatory limits. Integrates both bias and imprecision.
+    - **Total Allowable Error** – Evaluates whether the total observed error in a method is within acceptable clinical or regulatory limits. Integrates both bias and imprecision.
     - **Z-test** – Tests whether a sample mean differs significantly from a known population mean. Suitable when population variance is known or sample size is large.
-    ---
-    Choose a test from the buttons below to get started.
     """)
 
 # Define button labels and their module mapping
@@ -67,7 +66,7 @@ module_map = {
     "Q-Q Plot": q_q_plots,
     "Shapiro-Wilk Test": shapiro_wilk,
     "T-test": t_test,
-    "Total Allowable Error (TEa)": tea,
+    "Total Allowable Error": tea,
     "Z-test": z_test,
 }
 
@@ -84,5 +83,3 @@ if selected_test and selected_test != "Home":
     module = module_map.get(selected_test)
     if module and hasattr(module, "run"):
         module.run()
-    else:
-        st.warning(f"No implementation found for `{selected_test}`.")

@@ -24,13 +24,13 @@ st.title("📊 Imprecision Analysis")
 # --- Method Explanation ---
 with st.expander("📘 What is Imprecision Analysis?", expanded=True):
     st.markdown("""
-    Imprecision analysis is used to evaluate random error associated with a measurement. Measurement of laboratory analytical error falls into two main categories: " ***systematic error*** " and " ***random error*** ". 
-    \n Systematic errors are predictable problems influencing observations consistently in one direction, while random errors are more unpredictable. Systematic errors are assessed by the bias, while random errors by the imprecision measured by the coefficient of variation (CV, %). 
+    Imprecision analysis is used to evaluate random error associated with a measurement. Measurement of laboratory analytical error falls into two main categories: \n "***systematic error***" and "***random error***". 
+    \n **Systematic errors** are predictable problems influencing observations consistently in one direction, while **random errors** are more unpredictable. Systematic errors are typically demonstrated  by bias (for example, ongoing negative bias for a QC), while random errors by the imprecision measured by the coefficient of variation (CV, %) (for example, one measurement outside of the expected range with all other repeat measurements within range). 
     \n Imprecision affects the reproducibility and repeatability of results. Reproducibility is defined as the closeness of the results of successive measurements under changed conditions. Repeatability is the closeness of the results of at least twenty successive measurements under similar conditions. By contrast, bias is the average deviation from a true value with minimal contribution of imprecision while inaccuracy is the deviation of a single measurement from the true value with significant contribution by imprecision. Multiple measurements, at least twenty and preferably forty, are therefore required for calculating imprecision as well as bias.
     ****What types of imprecision do we assess?****
     - **Intra-well imprecision**: Variation in repeated measurements within a single well or sample.
-    - **Intra-batch imprecision**: Variation in repeated measurements within a single analytical run.
-    - **Inter-batch imprecision**: Variation in measurements of the same sample across different runs or days.
+    - **Intra-batch imprecision**: Variation in repeated measurements within a single bathch.
+    - **Inter-batch imprecision**: Variation in measurements of the same sample across different batches run across days.
 
     ****Why do we perform imprecision analysis?****
     - Verifying analytical precision for method validation.
@@ -241,15 +241,20 @@ def precision_studies(df, selected_analyte):
         analyser_comparison
     )
 
+    # for the purposes of HT1 evaluation, we can change the 'Analyser' column to dictate the NBS laboratoratory
+        # go back to og notebook and check the code to overlay results 
+        # also have a look at the enbs pop
+
 # --- File Upload (Wrapped in Expander) ---
 with st.expander("📤 Upload Your CSV File", expanded=True):
     st.markdown("Upload a CSV containing your analyte data. Ensure it includes the following columns: `Material`, `Analyser`, and `Sample ID`.")
     uploaded_file = st.file_uploader("Choose a file to get started", type=["csv"])
-
+    
 if uploaded_file:
     df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
-    st.subheader("📋 Data Preview")
+    st.subheader("📖 Data Preview")
     st.dataframe(df.head(20), use_container_width=True)
+
 
     if len(df.columns) <= 5:
         st.warning("❗️ Not enough analyte columns detected.")

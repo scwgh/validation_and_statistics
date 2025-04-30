@@ -11,12 +11,32 @@ def run():
 
     with st.expander("📘 What is Multi-Way ANOVA?"):
         st.markdown(""" 
-        Multi-way ANOVA allows analysis of how multiple independent variables (factors) affect a dependent variable. This includes interactions between factors.
+        Multi-Way ANOVA is use to estimate how the mean for an outcome variable depends on *two or more* categorical independent variables (factors). It is an extension of One-Way ANOVA, which only considers one factor.
+        The model for NOVA can be stated in two ways. In the following: _i_ refers to the level of factor 1, _j_ refers to the level of factor 2, and k refers to the _k_ th observation within the (_i_, _j_) cell. """)
 
-        - **Factors**: Material (QC level), Analyser, Analyte, and optionally LotNo
-        - **Null Hypothesis**: No effect from any factor or interaction
-        - **Alternative**: At least one factor or interaction has an effect
+        st.latex(r'''\quad Y_{ijk} = \mu_{ij} + \epsilon_{ijk}''')
+        st.latex(r''' {R}_{ijk} = Y_{ijk} - \hat{\mu}_{ij}''')
+        st.markdown("""This can be further expanded to:""")
+        st.latex(r'''\hat{Y}_{ijk} = \hat{\mu}_{ij}''')
+        st.latex(r'''\quad \hat{Y}_{ijk} = \hat{\mu} + \hat{\alpha}_i + \hat{\beta}_j + \hat{\epsilon}_{ijk}''')
+        st.markdown("""The second model is:""")
+        st.latex(r'''{Y_{ijk}} = \mu + \alpha_i + \beta_j + \epsilon_{ijk}''')
+        st.markdown("""This model decomposes the response to an overall mean, factors effects (represented by \alpha and \beta, which represent the effects of the i-th level of the first factor and the j-th level of the second factor, respectively), and an error term. The analysis of variance provides estimates of the grand mean and the factor effects. The predicted values and the residuals of the model are:""")
+        st.latex(r'''\quad \hat{Y}_{ijk} = \mu + \alpha_i + \beta_j + \epsilon_{ijk}''')
+        st.latex(r''' \quad {R}_{ijk} = Y_{ijk} - \hat{\mu} - \hat{\alpha} - \hat{\beta}''')
+        st.markdown("""The distinction between these models is important! The second model divides the mean into an overall mean and factor effects, which thereby makes the factor effect more explicit.""")
+                    
+        st.markdown("""
+            - **Factors**: 
+                        - Material (QC), 
+                        - Analyser, 
+                        - Analyte, 
+                        - Lot or Batch Number
+            - **Null Hypothesis**: No effect from any factor or interaction
+            - **Alternative**: At least one factor or interaction has an effect
         """)
+
+
 
     with st.expander("📘 Instructions"):
         st.markdown(""" 

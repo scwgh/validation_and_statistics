@@ -26,7 +26,7 @@ import kaleido
 
 # --- Streamlit Page Configuration ---
 st.set_page_config(
-    page_title="Validation Analysis App",
+    page_title="Validation and Statistical Analysis App - beta",
     page_icon=":computer:",
     layout="wide",
     initial_sidebar_state="expanded",

@@ -50,6 +50,7 @@ if "selected_test" not in st.session_state:
 
 # Layout: Button row for test selection
 with st.expander("🧪 Select a test to get started..", expanded=True):
+    st.markdown("Choose a test to perform from the options below:")
     cols = st.columns(len(test_options))
     for i, test in enumerate(test_options):
         if cols[i].button(test):

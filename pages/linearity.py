@@ -43,14 +43,12 @@ with st.expander("📄 Upload Your CSV File:", expanded=True):
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
         st.success("✅ File uploaded successfully!")
-        st.markdown("### 📋 Data Preview")
-        st.dataframe(df.head())
     else:
         df = None
         st.info("Awaiting file upload...")
 
 if df is not None:
-    st.subheader("📊 Data Preview:")
+    st.subheader("📖 Data Preview:")
     st.dataframe(df)
 
     units = st.selectbox(

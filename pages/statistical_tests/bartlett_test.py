@@ -9,13 +9,22 @@ def run():
     with st.expander("📘 What is Bartlett’s Test?", expanded=False):
         st.write("""
             Bartlett’s test is used to assess if **multiple samples have equal variances**.
-            
+            Equal variances across samples is called "_homogeneity of variances_". Some statistical tests, for example, the analysis of variance (ANOVA), assumes that the variances are equal across groups or samples. Therefore, the Bartlett test can be used to verify this assumption. 
+            If the test indicates that the variances are not equal, it suggests that the assumption of homogeneity of variances is violated. This can affect the validity of statistical tests that rely on this assumption.
+            The test is sensitive to deviations from normality, so it is important to check the normality of the data before applying it. If the data is not normally distributed, consider using Levene's test or Brown-Forsythe test as alternatives.
             It assumes the data is **normally distributed**, and is sensitive to deviations from normality.
             
             **Use case:** Useful for validating assumptions before running ANOVA.
+                 
+            The Bartlett test is defined as:
         """)
-
-    with st.expander("📘 Instructions"):
+        st.latex(r''' H_0: \sigma_1^2 = \sigma_2^2 = ... = \sigma_k^2 \text{ (homogeneity of variances)}''')
+        st.latex(r''' H_a: \text{At least one variance is different}''')
+        st.latex(r''' T = \frac{(N-k) \ln(\sigma^2_p)}{\sum_{i=1}^{k} (n_i - 1) \ln(\sigma^2_i)}''')
+        st.latex(r''' \sigma^2_p = \frac{\sum_{i=1}^{k} (n_i - 1) \sigma^2_i}{N-k} ''')
+        st.markdown(r"""
+            The variances are judged to be unequal if:""")
+        st.latex(r'''T > \chi^2_{1-\alpha, k-1}''')
         st.markdown("""
             1. Upload a CSV file where:
                - `Material` is in column 4 (index 3)

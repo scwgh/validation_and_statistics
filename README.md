@@ -1,7 +1,5 @@
 from pathlib import Path
 
-# Define the README content
-readme_content = """
 # 🧪 Validation and Statistical Analysis App (Beta)
 
 A user-friendly, Streamlit-powered web application to support laboratory professionals in conducting validation and verification analyses using a suite of statistical tools.

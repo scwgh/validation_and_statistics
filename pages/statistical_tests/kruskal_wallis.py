@@ -39,29 +39,53 @@ def run():
             st.dataframe(df.head())
 
             if st.button("Run Kruskal-Wallis Test"):
-                for analyte in analyte_cols:
-                    st.markdown(f"### 🔬 Analyte: **{analyte}**")
+                results = []
 
-                    subset = df[[material_col, analyte]].dropna()
+                for material in df[material_col].unique():
+                    material_df = df[df[material_col] == material]
 
-                    if subset.empty or subset[material_col].nunique() < 2:
-                        st.warning(f"Not enough groups to compare for {analyte}.")
+                    if material_df.empty:
                         continue
 
-                    try:
-                        groups = [group[analyte].values for name, group in subset.groupby(material_col)]
-                        stat, p_value = kruskal(*groups)
+                    for analyte in analyte_cols:
+                        subset = material_df[[material_col, analyte]].dropna()
 
-                        st.write(f"**Kruskal-Wallis H Statistic:** {stat:.4f}")
-                        st.write(f"**p-value:** {p_value:.4f}")
+                        if subset[material_col].nunique() < 2:
+                            results.append({
+                                "Material": material,
+                                "Analyte": analyte,
+                                "H Statistic": np.nan,
+                                "p-value": np.nan,
+                                "Result": "⚠️ Not enough groups"
+                            })
+                            continue
 
-                        if p_value < 0.05:
-                            st.error("❌ Significant differences detected among groups.")
-                        else:
-                            st.success("✅ No significant differences detected among groups.")
+                        try:
+                            groups = [group[analyte].values for _, group in subset.groupby(material_col)]
+                            stat, p_value = kruskal(*groups)
 
-                    except Exception as e:
-                        st.error(f"{analyte}: Error performing Kruskal-Wallis test — {e}")
+                            result_text = "❌ Significant difference" if p_value < 0.05 else "✅ No significant difference"
+
+                            results.append({
+                                "Material": material,
+                                "Analyte": analyte,
+                                "H Statistic": round(stat, 4),
+                                "p-value": round(p_value, 4),
+                                "Result": result_text
+                            })
+
+                        except Exception as e:
+                            results.append({
+                                "Material": material,
+                                "Analyte": analyte,
+                                "H Statistic": np.nan,
+                                "p-value": np.nan,
+                                "Result": f"❌ Error: {e}"
+                            })
+
+                results_df = pd.DataFrame(results)
+                st.subheader("📈 Kruskal-Wallis Test Results")
+                st.dataframe(results_df)
 
         except Exception as e:
             st.error(f"⚠️ Error loading data: {e}")

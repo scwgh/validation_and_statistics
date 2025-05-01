@@ -6,22 +6,42 @@ from statsmodels.formula.api import ols
 from statsmodels.stats.anova import anova_lm
 from utils import apply_app_styling
 
+
+
 def run():
     # Page title
     st.title("🧪 One-Way ANOVA")
 
     with st.expander("📘 What is One-Way ANOVA?"):
         st.markdown("""ANOVA, which stands for **Analysis of Variance**, is a statistical method used to determine whether there are any statistically significant differences between the means of three or more independent groups.
-
-        \n In a **one-way ANOVA**, the analysis is performed using a single independent variable (or factor), such as QC level (e.g., QC1, QC2, QC3), and examines how this factor influences a continuous dependent variable (e.g., analyte concentration).
-
+        \n ANOVA is most easily explained by the concept of "value-splitting". ANOVA divides the observed data values into components whihc are attributable to the different levels of factors. 
+        \n In a **one-way ANOVA**, the analysis is performed using a single independent variable (or factor), such as QC level (e.g., QC1, QC2, QC3), and examines how this factor influences a continuous dependent variable (e.g., analyte concentration). A one-way layout consists of a single factor with several levels and multiple observations. The mean of hte observations within each level of the factor is calculated, and the residuals will then give us an idea of the variation observed at each level. 
+        """)
+        st.latex(r'''{y}_i = \mu + \alpha_i + \epsilon_i''')
+        st.markdown(""" where the *j*th data point in the *i*th group is represented by *y_i*, the overall mean is represented by *μ*, the effect of the *i*th group is represented by *α_i*, and the error term is represented by *ε_i*.      
         \n The core idea is to compare the **variation between groups** to the **variation within groups**. If the variation between groups is significantly larger than the variation within groups, it suggests that the group means are not all the same.
 
         \n - **Null hypothesis (H₀)**: All group means are equal.
         \n - **Alternative hypothesis (H₁)**: At least one group mean is different.
+        \n One-way ANOVA can be explained by:
+        """)
+        st.table(
+            {
+                "Source of Variation": ["Factor", "Residual", "Correlation Total"],
+                "Sum of Squares (SS)": ["SS_F", "SS_E", "SST"],
+                "DoF": ["MSB = SSB / (k - 1)", "MSW = SSW / (N - k)", ""],
+                "Mean Square (MS)": ["MSB = SSB / (k - 1)", "MSW = SSW / (N - k)", ""],
+                "F-statistic": ["F = MSB / MSW", "", ""]
+            }
+        )
+        st.markdown("""where:""")
+        st.latex(r'''\bar{y}_{i\cdot} = \frac{1}{J} \sum_{j=1}^{J} y_{ij}''')
 
+        st.markdown("""
         \n The result is quantified using a **p-value**. A p-value less than 0.05 typically indicates a statistically significant difference between groups.
-        \n In this app, we will use one-way ANOVA to assess the differences in analyte concentrations across different QC levels. This can help identify potential analytical stability issues or QC performance drift. """)
+        \n In this app, we will use one-way ANOVA to assess the differences in analyte concentrations across different QC levels. This can help identify potential analytical stability issues or QC performance drift.
+        \n If you want to assess how multiple factors may affect more than one factor, consider ANOVA with a wider pull, such as: **Two-Way Crossed ANOVA**, **Two-Way Nested ANOVA**, or **Multi-Way ANOVA**.            
+                     """)
 
     with st.expander("📘 Instructions:"):
         st.markdown("""

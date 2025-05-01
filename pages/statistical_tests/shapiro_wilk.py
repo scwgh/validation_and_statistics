@@ -6,35 +6,9 @@ def run():
     st.title("\U0001F4CA Shapiro-Wilk Normality Test")
 
     st.markdown("""
-    The **Shapiro-Wilk test** is used to test the normality of a dataset. It tests the null hypothesis that the data is normally distributed. If the p-value is small (typically < 0.05), the null hypothesis is rejected, and we conclude that the data is not normally distributed.
+    The **Shapiro-Wilk test**, first proposed in 1965, calculates a _W_ statistic which tests whether a random sample comes from a normal distribution. Small values for _W_ are suggestive of departmture from nortmality, and percentage points for the _W_ statistic. The _W_ statistic is calculated as follows:""")
+    st.latex(r'''W = \frac{\left( \sum_{i=1}^n a_i x_{(i)} \right)^2}{\sum_{i=1}^n (x_i - \bar{x})^2}''')
 
-    ### \U0001F4C2 Data Upload Requirements:
-    - Upload a **CSV file** containing your experimental data for the test.
-    - Ensure that the column you wish to test for normality contains continuous numerical values.
-    """)
+    st.markdown(""" where _x(i)_ are the ordered sample values adn x(1) is the smallest. The $\alpha$ i are constants generated from the means, variances and covariances of the order statistics of a sample of size _n_ from a normal distribution.
+                \n  """)
 
-    uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
-
-    if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file)
-
-        st.subheader("Data Preview:")
-        st.write(df.head())
-
-        column_name = st.selectbox("Select the column to test for normality", df.columns)
-
-        if pd.api.types.is_numeric_dtype(df[column_name]):
-            stat, p_value = stats.shapiro(df[column_name].dropna())
-
-            st.subheader(f"Shapiro-Wilk Test Results for {column_name}")
-            st.write(f"Test Statistic: {stat:.5f}")
-            st.write(f"P-Value: {p_value:.5f}")
-
-            if p_value > 0.05:
-                st.success("The data appears to be normally distributed (fail to reject H0).")
-            else:
-                st.error("The data does not appear to be normally distributed (reject H0).")
-        else:
-            st.error("Please select a numeric column for normality testing.")
-    else:
-        st.info("Please upload a CSV file to get started.")

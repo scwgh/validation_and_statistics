@@ -19,18 +19,24 @@ with st.expander("📘 Why perform Method Comparison?", expanded=True):
      Here are the types of tests you can explore in this module:
 
     - **One-Way ANOVA**: Tests whether there are significant differences between the means of three or more independent groups (e.g. QC levels).
-    - **Multi-Way ANOVA**: Extends One-Way ANOVA to analyze the effect of multiple factors (e.g. Material and Analyser), including their interactions.
+    - **Two-Way Crossed ANOVA**: 
+    - **Two-Way Nested ANOVA**: 
+    - **Multi-Way ANOVA**: Extends One- and Two- Way ANOVA to analyze the effect of multiple factors (e.g. Material and Analyser), including their interactions.
     - **Bland-Altmann Analysis**: A graphical method to assess agreement between two measurement methods by plotting the difference vs. mean.
     - **Deming Regression**: A linear regression method that accounts for measurement error in both variables, ideal for comparing two quantitative methods.
     - **Passing Bablok Regression**: A non-parametric regression used to compare methods, robust against outliers and assumptions about data distribution.
 
     These tools support analytical method validation, troubleshooting, and cross-platform harmonization.
+    
+    **Disclaimer:** the _ANOVA_ modules are in development. Please DO NOT use these functions until further notice
     """)
 
 # Define available tests and their module names
 test_options = [
     "One-Way ANOVA",
-    "Multi-Way ANOVA",
+    "Two-Way Crossed ANOVA",
+    "Two-Way Nested ANOVA",
+    "Multi-Way ANOVA",    
     "Bland-Altmann Analysis",
     "Deming Regression",
     "Passing Bablok Regression",
@@ -38,6 +44,8 @@ test_options = [
 
 module_map = {
     "One-Way ANOVA": "one_way_anova",
+    "Two-Way Crossed ANOVA": "two_way_crossed",
+    "Two-Way Nested ANOVA": "two_way_nested",
     "Multi-Way ANOVA": "multi_way_anova",
     "Bland-Altmann Analysis": "bland_altmann",
     "Deming Regression": "deming_regression",

@@ -3,7 +3,7 @@ import sys
 # sys.path.insert(0, '/workspaces/validation_app')  # Adjust if needed
 
 from pages.statistical_tests import (
-    bartlett_test, f_test, t_test, cusum, cochran,
+    anderson_darling, bartlett_test, f_test, t_test, cusum, cochran,
     kolmogorov_smirnov, kruskal_wallis, levene_test,
     mann_whitney_u, p_p_plots, q_q_plots, shapiro_wilk, tea, z_test, chi_squared
 )
@@ -28,6 +28,7 @@ with st.expander("📘 Why perform more statistical tests?", expanded=True):
 with st.expander("📘 How do I know which statistical test to choose?", expanded=False):
     st.markdown("""
    
+    - **Anderson-Darling Test** – Determine if a sample of data comes from a specific distribution. 
     - **Bartlett's Test** – Assesses the equality of variances across multiple groups. It is sensitive to departures from normality and should only be used when data is approximately normally distributed.
     - **Chi-Squared Test** – Tests the independence of categorical variables or compares observed vs expected frequencies. Commonly used with contingency tables to assess distribution fit.
     - **Cochran's Test** – Used to detect whether a single variance is significantly larger than others in a group. Useful for identifying outliers in precision studies.
@@ -47,12 +48,13 @@ with st.expander("📘 How do I know which statistical test to choose?", expande
 
 # Define button labels and their module mapping
 test_names = [
-    "Bartlett's Test", "Chi-Squared Test", "Cochran's Test", "CUSUM Test",
+    "Anderson-Darling Test", "Bartlett's Test", "Chi-Squared Test", "Cochran's Test", "CUSUM Test",
     "F-test", "Kolmogorov–Smirnov Test", "Kruskal-Wallis Test", "Levene's Test",
-    "Mann-Whitney U Test", "P-P Plot", "Q-Q Plot", "Shapiro-Wilk Test", "T-test", "Total Allowable Error (TEa)", "Z-test"
+    "Mann-Whitney U Test", "P-P Plot", "Q-Q Plot", "Shapiro-Wilk Test", "T-test", "Total Allowable Error", "Z-test"
 ]
 
 module_map = {
+    "Anderson-Darling Test": anderson_darling,
     "Bartlett's Test": bartlett_test,
     "Chi-Squared Test": chi_squared,
     "Cochran's Test": cochran,
@@ -71,8 +73,8 @@ module_map = {
 }
 
 # Create rows of buttons (3 per row)
-for i in range(0, len(test_names), 3):
-    cols = st.columns(3)
+for i in range(0, len(test_names), 2):
+    cols = st.columns(2)
     for col, test_name in zip(cols, test_names[i:i+3]):
         if col.button(test_name):
             st.session_state.selected_test = test_name

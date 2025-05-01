@@ -16,14 +16,14 @@ def run():
     with st.expander("📘 What is Bland-Altman Analysis?"):
         st.markdown("""
         Bland-Altman analysis is a method for assessing the **agreement between two measurement methods** by plotting the **difference** against the **mean** of the two methods for each sample.
-
-        You’ll see the following outputs for each analyte:
-        - **Mean Difference (Bias)**: The average difference between the two analyzers. Ideally close to 0.
-        - **Limits of Agreement (LoA)**: The range within which most differences between the two analyzers fall (typically ±1.96 × SD).
-        - **Bland-Altmann Plot**: Displays the spread and trend of differences across measurement ranges, helping identify bias, outliers, or trends.
-
-        Use this analysis to evaluate if two analyzers provide results that are **consistently close** enough for clinical or research purposes.
+        \n Given a set of paired measurements (_x_ and _y_) where _i_ = 1 to _n_, the Bland-Altmann plots calculate as:
         """)
+        st.latex(r'\text{y axis} = {y}_i - {x}_i')
+        st.latex(r'\text{x axis} = \frac{{y}_i + {x}_i}{2}')
+        st.markdown("""
+        This analysis is used to evaluate if two analyzers provide results that are **consistently close** enough for clinical or research purposes.
+        \n The reference line for the mean gives an indication of the bias between the two methods. 
+                    \n The limits of agreement help assess whether the differences between two methods are practically significant. If the differences follow an approximately normal distribution, around 95% of the differences should fall within these limits. If the limits of agreement are considered clinically insignificant, the two measurement methods may be regarded as equivalent for practical purposes. However, especially with small sample sizes, these limits may not be reliable. In such cases, the confidence limits for the limits of agreement can provide an indication of the uncertainty. While these confidence limits are only approximate, they should be sufficient for most applications.""")
 
     with st.expander("📘 Instructions:"):
         st.markdown("""

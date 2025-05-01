@@ -16,16 +16,27 @@ apply_app_styling()
 
 st.title("📏 Linearity")
 
-with st.expander("📘 Why perform Linearity?", expanded=True):
+with st.expander("📘 Why assess linearity?", expanded=True):
     st.markdown("""
     **Linearity** refers to the ability of an analytical method to produce results that are directly proportional to the concentration of the analyte in the sample.
-    It is a critical aspect of method validation, ensuring that the method provides accurate and reliable results across the entire range of concentrations.
-    This module provides tools to assess the linearity of your method, including:
-    - **Standard Curve**
-    - **Response Curve**
-    - **Correlation Coefficient**
-    - **Residual Analysis**
-    """)
+                \n A test of linearity starts with a plot of the measured values against the corresponding reference standards to see whether the points fall along a straight line. 
+                \n **Calibration Curve**:
+                    \n > In the context of a calibration curve, we use linearity studies to predict future measurements made with the same instrument. Applying this to calibration results, a calibration line is created using the inverse of a linear model:""")
+    st.latex(r''' {Y} = \alpha + \beta{x} + \epsilon ''')
+    st.markdown("""> This may be re-worked to provide the calibrated value:""")
+    st.latex(r'''\bar{X} = \frac{Y - \hat{\alpha}}{\hat{\beta}}''')
+
+    st.markdown("""At least one measurement is needed for each standard. The linearity assumption in linear regression means that teh relationship between the independent and dependent variable is a straight line. If this is met, the instrument performance is linear. Statistical control in this context implies not only that the measurements are repeatable within certain limits, but that the instrument response also remains linear. 
+                \n It is a critical aspect of method validation, ensuring that the method provides accurate and reliable results across the entire range of concentrations.""")
+with st.expander("📘 Investigating issues with linearity", expanded=False):   
+    st.markdown("""
+    Calibration does not always eliminate bias. There are several important factors to consider when investigating poor linearity:
+
+    - **Poor Precision**: Instrument imprecision or day-to-day variability can lead to unreliable calibration. Precision should be assessed before selecting an instrument.
+    - **Outliers**: Extreme data points, especially at calibration range endpoints, can distort the curve. Isolated outliers should be removed, and inconsistent daily results must be reviewed.
+    - **Operator Bias**: Different operators may introduce systematic biases. If significant, consider retraining or creating separate calibration curves per operator.
+    - **System Instability**: Instrument drift over time can invalidate calibration. Regular statistical monitoring is essential.
+    - **Unseen Day-to-Day Variation**: Aggregated plots may hide daily inconsistencies. Fine-grained plots can help reveal such hidden variability.""")
 
 with st.expander("📘 Instructions:"):
     st.markdown("""

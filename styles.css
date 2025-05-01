@@ -5,11 +5,11 @@
     avoid changing padding and margins - streamlit handles that well and you don't so much.
     stick to changing font sizes (be consistent!) and colours (pick 1/2 if you must, but again the base theme is good) */
 
-/* Base font family */
+/* Base font family
 html, body, [class*="css"] {
     font-family: 'Helvetica', 'Arial', sans-serif !important;
    font-size: 18px !important; /* Increase base font size */
-}
+} */
 
 
 /* General app background and text */

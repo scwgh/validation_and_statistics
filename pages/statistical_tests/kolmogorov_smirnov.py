@@ -41,14 +41,15 @@ def run():
 
     with st.expander("📘 What is the Kolmogorov–Smirnov Test?", expanded=False):
         st.write("""
-            The Kolmogorov-Smirnov (K-S) test is based on the empirical distribution function:
-        """)
+            The Kolmogorov-Smirnov (K-S) test is based on the empirical distribution function and can be used to decide if a sample comes from a popualtion with a given distribution.
+                 \n It is defined as:""")
         st.latex(r'''\epsilon _n(x) = \frac{1}{n} \sum_{i=1}^{n} I(X_i \leq x)''')
         st.write("""
-            
-                 
-            \n But why should you care?
-            \n The K-S test has an extremely attractive feature: the test statistic itself does not depend on the cumulative distribution. It is also an exact test (by contrast, the Chi-squared test depends on an adequate sample size for the approximations to be valid).
+                            
+            \n But what is so interesting about that, you say?
+            \n The K-S test has two extremely attractive features which are useful in interpreting population datasets. 
+                 \n First, the test statistic itself does not depend on the cumulative distribution. This means that the K-S test can be used to compare any two distributions (for example, disease- and non-disease state populations), not just the normal distribution.
+            \n And second, is an *exact* test (by contrast, the Chi-squared test depends on an adequate sample size for the approximations to be valid). This means that the K-S test is valid for even small sample sizes.
             \n The K-S test is defined by:
             \n - **Null hypothesis (H₀)**: The data follows the specified distribution.
             \n - **Alternative hypothesis (H₁)**: The data does not follow the specified distribution.

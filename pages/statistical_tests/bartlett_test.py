@@ -38,31 +38,33 @@ def run():
     if uploaded_file is not None:
         try:
             df = pd.read_csv(uploaded_file)
+            df = df.copy()
 
             material_col = df.columns[3]
-            analyte_data = df.iloc[:, 5:]
-            analyte_data = analyte_data.apply(pd.to_numeric, errors='coerce')
+            analyte_cols = df.columns[5:]
+
             df[material_col] = df[material_col].astype(str)
 
             st.subheader("📊 Raw Data Preview")
             st.dataframe(df.head())
 
+            selected_material = st.selectbox("🏷️ Choose a material to assess:", sorted(df[material_col].unique()))
+            selected_analyte = st.selectbox("🧪 Choose an analyte to assess:", analyte_cols)
+
+            group_col = st.selectbox("🧩 Choose a grouping column (e.g. BatchID, Sample ID, Group):", df.columns[:5])
+
             if st.button("Run Bartlett's Test"):
-                for material, group_df in df.groupby(material_col):
-                    st.markdown(f"### 🧪 Material: **{material}**")
+                filtered_df = df[df[material_col] == selected_material]
 
-                    analyte_subset = group_df.iloc[:, 5:]
-                    analyte_subset = analyte_subset.apply(pd.to_numeric, errors='coerce')
-                    analyte_subset_clean = analyte_subset.dropna()
+                groups = [group[selected_analyte].dropna().values for _, group in filtered_df.groupby(group_col)]
+                groups = [g for g in groups if len(g) > 1]
 
-                    if analyte_subset_clean.empty or analyte_subset_clean.shape[0] < 2:
-                        st.warning(f"Not enough valid data for Material: {material}")
-                        continue
-
+                if len(groups) < 2:
+                    st.warning("⚠️ Need at least two valid groups to perform Bartlett’s test.")
+                else:
                     try:
-                        groups = [analyte_subset_clean[col].values for col in analyte_subset_clean.columns]
                         stat, p_value = bartlett(*groups)
-
+                        st.markdown(f"### Results for Material: **{selected_material}**, Analyte: **{selected_analyte}**")
                         st.write(f"**Bartlett Test Statistic:** {stat:.4f}")
                         st.write(f"**p-value:** {p_value:.4f}")
 
@@ -70,9 +72,7 @@ def run():
                             st.error("❌ Variances are significantly different — heteroscedasticity detected.")
                         else:
                             st.success("✅ Variances are not significantly different — homoscedasticity assumed.")
-
                     except Exception as e:
-                        st.error(f"{material}: Error performing Bartlett’s test — {e}")
-
+                        st.error(f"❌ Error performing Bartlett’s test: {e}")
         except Exception as e:
             st.error(f"⚠️ Error loading data: {e}")

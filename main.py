@@ -26,7 +26,7 @@ import kaleido
 
 # --- Streamlit Page Configuration ---
 st.set_page_config(
-    page_title="Validation and Statistical Analysis App - beta",
+    page_title="Validation and Statistical Analysis App - beta v.0.02",
     page_icon=":computer:",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -42,7 +42,7 @@ st.sidebar.success("Select a validation process from the sidebar above.")
 # --- Main Page Welcome Message ---
 st.markdown(
     """
-    <h1>Welcome to the Validation and Verification Analysis App! <span class='wave'>👋</span></h1>
+    <h1>Welcome to the Validation and Statistical Analysis App (v.0.02) <span class='wave'>👋</span></h1>
     """, 
     unsafe_allow_html=True
 )
@@ -90,15 +90,14 @@ with st.expander("📖 Which modules are available?", expanded=False):
             - 🥼 Total Imprecision
 
         - **Linearity**
-            - 👨🏻‍🔬 Standard Curve
-            - 👩🏽‍🔬 Response Curve
 
-        - **Limit of Detection (LOD)**
-
-        - **Limit of Quantitation (LOQ)**
+        - **Limits
+            - Limit of Blank (LOB)
+            - Limit of Detection (LOD)
+            - Limit of Quantitation (LOQ)  
 
         - **Method Comparison**
-            - 🧪 ANOVA
+            - 😵‍💫 ANOVA
             - 🥼 Bland-Altman Analysis
             - ⚖️ Deming Regression
             - 📊 Passing-Bablok Analysis
@@ -118,6 +117,10 @@ with st.expander("📖 Which modules are available?", expanded=False):
             - 🔬 T-test
             - 🧪 Total Allowable Error (TEa)
             - 📏 Z-test
+
+        
+        - **Outliers**
+        - **Reference Intervals**
         """
     )
 

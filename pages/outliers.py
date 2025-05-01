@@ -105,11 +105,11 @@ st.title("🎯 Outliers")
 with st.expander("📘 Why are we interested in outliers?", expanded=True):
     st.markdown("""An outlier is defined as an observation (or datapoint) which deviates markedly from other observations. Identification of potential outliers is important for a number of reasons:
                 \n - An outlier may indicate "bad data" (e.g., a transcription error, a sample mix-up, etc.)
-                \n - Outliers may be due to random variation in the data - but this not mean that we will want to exclude the outlying result from our data. 
+                \n - Random variation in the data. Random variation may happen and we can continue with our tests without worrying too much about this - but this not mean that we will want to exclude the outlying result from our data. 
                 \n Iglewicz and Hoaglin (1987) highlight the following three problems regarding outliers:
-                - Outlier labelling - this flags potential outliers for furhter investigation. 
-                - Outlier accomomodation - this uses robust statistical methods to reduce the influence of outliers on the analysis.
-                - Outlier identification = this formally tests whether an observation or datapoint is an outlier. 
+                \n - Outlier labelling - this flags potential outliers for furhter investigation. 
+                \n - Outlier accomomodation - this uses robust statistical methods to reduce the influence of outliers on the analysis.
+                \n - Outlier identification = this formally tests whether an observation or datapoint is an outlier. 
     """)
 with st.expander("📘 What is masking and swamping?", expanded=False):
     st.markdown("""Masking occurs when an outlier is not detected because it is masked by other outliers - or "hidden". For example, if a dataset contains two outliers, one of which is much larger than the other, the larger outlier may mask the smaller one, making it difficult to identify. This can lead to incorrect conclusions about the data and can affect the results of statistical analyses.
@@ -207,7 +207,7 @@ if df is not None:
                         st.write(f"Approx Critical Value: {result['Approx Critical Value']}")
                         st.write(f"Outliers Detected: {result['Outliers Detected']}")
 
-with st.expander("‼️ Even more about outliers!", expanded=False):  
+with st.expander("‼️ Want to know more about outliers?!", expanded=False):  
     st.markdown("""
     \n If you want to think more about how outliers can affect outcomes, the **Monte Carlo simulation** is a model which predicts the probability of various outcomes when the potential for a random variable exists.
     

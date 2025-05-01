@@ -7,33 +7,32 @@ from statsmodels.stats.anova import anova_lm
 from utils import apply_app_styling
 
 def run():
-    st.title("😵‍💫 Multi-Way ANOVA")
+    st.title("😵‍💫 Two-Way Crossed ANOVA")
 
-    with st.expander("📘 What is Multi-Way ANOVA?"):
+    with st.expander("📘 What is Two-Way Crossed ANOVA?"):
         st.markdown(""" 
-        Multi-Way ANOVA is use to estimate how the mean for an outcome variable depends on *two or more* categorical independent variables (factors). It is an extension of One-Way ANOVA, which only considers one factor. Unlike One-Way ANOVA, which only considers one factor, factors are *crossed* and *nested*, so Multi-Way ANOVA can also assess the interaction between factors.
-        The model for ANOVA can be stated in two ways. In the following: _i_ refers to the level of factor 1, _j_ refers to the level of factor 2, and k refers to the _k_ th observation within the (_i_, _j_) cell. """)
+        When we have two factors with at least two levels and one or more observations at each level, we define this as a two-way layout. If we assume that we have _K_ observations at each combination of _I_ levels of Factor A, and _J_ levels of Factor B, we can mode the two-way layout as:
+        """)
+        st.latex(r'''y_{ijk} = \mu + \alpha_i + \beta_j + \alpha\beta_{ij} + \epsilon_{ijk}''')
         st.markdown("""
             - **Factors**: 
-                        - Material (QC), 
-                        - Analyser, 
-                        - Analyte, 
-                        - Lot Number or Batch Number
+              - Material (QC Level), 
+              - Analyser (crossed with Material), 
+              - Analyte, 
+              - Optional: LotNo
             - **Null Hypothesis**: No effect from any factor or interaction
             - **Alternative**: At least one factor or interaction has an effect
         """)
 
-
-
     with st.expander("📘 Instructions"):
         st.markdown(""" 
-        1. Upload a CSV with:
-            - Material
-            - Analyser
-            - Sample ID
+        1. Upload a CSV file with:
+            - `Material` (e.g., QC1, QC2)
+            - `Analyser`
+            - `Sample ID`
             - One or more numeric analyte columns
-            - (Optional) LotNo
-        2. The app will reshape the data and perform multi-way ANOVA using all factors.
+            - Optional: `LotNo`
+        2. The app reshapes the data and performs crossed ANOVA using all factors.
         """)
 
     with st.expander("📤 Upload Your CSV File", expanded=True):
@@ -44,7 +43,7 @@ def run():
         st.subheader("📋 Raw Data Preview")
         st.dataframe(df.head())
 
-        # Keep rows where Material starts with "QC"
+        # Keep only QC data
         df_qc = df[df['Material'].astype(str).str.startswith("QC")].copy()
 
         if df_qc.empty:
@@ -64,7 +63,7 @@ def run():
             st.error("No numeric analyte columns found.")
             return
 
-        # Melt data into long format
+        # Melt to long format
         id_vars = ['Material', 'Analyser', 'Sample ID']
         if 'LotNo' in df_qc.columns:
             id_vars.append('LotNo')
@@ -74,18 +73,17 @@ def run():
         st.subheader("📊 Long Format Data")
         st.dataframe(df_long.head())
 
-        # Ensure enough levels
+        # Check enough levels for ANOVA
         if df_long['Material'].nunique() < 2:
             st.warning("Not enough QC levels for ANOVA.")
             return
 
-        # Build dynamic formula
-        factors = ['C(Material)', 'C(Analyser)', 'C(Analyte)']
+        # Construct crossed ANOVA formula
+        # Material and Analyser are crossed, with an interaction term
+        formula_parts = ['C(Material)', 'C(Analyser)', 'C(Material):C(Analyser)', 'C(Analyte)']
         if 'LotNo' in df_qc.columns:
-            factors.append('C(LotNo)')
-
-        interactions = [f"{a}:{b}" for i, a in enumerate(factors) for b in factors[i+1:]]
-        formula = "Value ~ " + " + ".join(factors + interactions)
+            formula_parts.append('C(LotNo)')
+        formula = "Value ~ " + " + ".join(formula_parts)
 
         try:
             model = ols(formula, data=df_long).fit()
@@ -122,7 +120,7 @@ def run():
             st.download_button(
                 "⬇ Download ANOVA Table",
                 data=csv_buffer.getvalue(),
-                file_name="multiway_anova_results.csv",
+                file_name="crossed_anova_results.csv",
                 mime="text/csv"
             )
 

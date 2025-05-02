@@ -18,7 +18,8 @@ st.title("📏 Linearity")
 
 with st.expander("📘 Why assess linearity?", expanded=True):
     st.markdown("""
-    **Linearity** refers to the ability of an analytical method to produce results that are directly proportional to the concentration of the analyte in the sample.
+    **Linearity** refers to the ability of an analytical method to produce results that are directly proportional to the concentration of the analyte in the sample. 
+                \n The linear range experiment requires enoigh of each specimen to prepare dilutions and to carry out testing with 5 or more concentrations. 
                 \n A test of linearity starts with a plot of the measured values against the corresponding reference standards to see whether the points fall along a straight line. 
                 \n **Calibration Curve**:
                     \n > In the context of a calibration curve, we use linearity studies to predict future measurements made with the same instrument. Applying this to calibration results, a calibration line is created using the inverse of a linear model:""")

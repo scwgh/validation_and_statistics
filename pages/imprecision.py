@@ -123,7 +123,7 @@ with st.expander("📘 Instructions:", expanded=False):
 
     """)
 
-with st.expander("📘 What are the Westgard Rules?"):
+with st.expander("ℹ️ What are the Westgard Rules?"):
     st.markdown("""
     The **Westgard Rules** are a set of statistical criteria used to monitor analytical performance and detect potential errors in quality control (QC) data. Each rule examines patterns or outliers based on the mean and standard deviation (SD) of control measurements. Here's what each rule means:
 
@@ -141,10 +141,6 @@ with st.expander("📘 What are the Westgard Rules?"):
 
     \n Each rule helps identify potential issues in assay performance. You can toggle which rules are applied using the sidebar checkboxes.
     """)
-
-with st.expander("📘 Guidance for assessing imprecision:"):
-    st.markdown("- For **inter-batch imprecision**, ~10 replicates should be run across 10 days."
-    "\n For intra-batch """)
 
 # --- Define Westgard Rules ---
 st.sidebar.header("📑 Toggle Westgard Rules")
@@ -333,60 +329,40 @@ def precision_studies(df, selected_analyte, rules_enabled):
     else:
         st.info("No Inter-Batch data available to plot for the selected analyte.")
 
-    # Only use rows where Test == 'Imprecision'
-    imprecision_df = qc_df[qc_df['Test'] == 'Imprecision'].copy()
-    imprecision_df['Date'] = pd.to_datetime(imprecision_df['Date'], errors='coerce', dayfirst=True)
 
-    results = []
+    # Summary statistics for all imprecision types
     analyzer_means = {}
 
-    for analyte in imprecision_df.columns[5:]:
-        for (material, analyzer), group in imprecision_df.groupby(['Material', 'Analyser']):
+    for analyte in df.columns[5:]:
+        for (material, analyzer, test), group in qc_df.groupby(['Material', 'Analyser', 'Test']):
+            group = group.copy()
+            group['Date'] = pd.to_datetime(group['Date'], errors='coerce', dayfirst=True)
             group = group.dropna(subset=['Date', analyte])
 
-            if group.empty or group['Date'].nunique() < 2:
+            if group.empty or len(group) < 2:
                 continue
 
-            # Group by Date to calculate daily statistics
-            daily_stats = group.groupby('Date')[analyte].agg(['mean', 'std', 'count']).dropna()
-
-            # Inter-batch: SD of daily means
-            inter_mean = daily_stats['mean'].mean()
-            inter_sd = daily_stats['mean'].std(ddof=1)
-            inter_cv = (inter_sd / inter_mean * 100) if inter_mean != 0 else np.nan
-
-            # Intra-batch: pooled SD of replicates within each day
-            pooled_variance = ((daily_stats['count'] - 1) * daily_stats['std']**2).sum() / (daily_stats['count'].sum() - daily_stats.shape[0])
-            intra_sd = np.sqrt(pooled_variance)
-            intra_cv = (intra_sd / inter_mean * 100) if inter_mean != 0 else np.nan
+            overall_mean = round(group[analyte].mean(), 2)
+            sd = round(group[analyte].std(), 2)
+            nobs = group[analyte].count()
+            cv = round((sd / overall_mean) * 100, 2) if overall_mean != 0 else np.nan
+            sem = round(sd / np.sqrt(nobs), 2) if nobs != 0 else np.nan
 
             results.append({
-                'Test': 'Inter-Batch Imprecision',
+                'Test': test,
                 'Analyte': analyte,
-                'n': daily_stats.shape[0],
+                'n': nobs,
                 'Material': material,
                 'Analyser': analyzer,
-                'Mean': round(inter_mean, 2),
-                'SD': round(inter_sd, 2),
-                'CV (%)': round(inter_cv, 2),
-                'SEM': round(inter_sd / np.sqrt(daily_stats.shape[0]), 2)
+                'Mean': overall_mean,
+                'SD': sd,
+                'CV (%)': cv,
+                'SEM': sem
             })
 
-            results.append({
-                'Test': 'Intra-Batch Imprecision',
-                'Analyte': analyte,
-                'n': int(daily_stats['count'].sum()),
-                'Material': material,
-                'Analyser': analyzer,
-                'Mean': round(inter_mean, 2),  # Same mean
-                'SD': round(intra_sd, 2),
-                'CV (%)': round(intra_cv, 2),
-                'SEM': round(intra_sd / np.sqrt(daily_stats['count'].sum()), 2)
-            })
-
-            key = (analyte, material)
-            analyzer_means.setdefault(key, {})[analyzer] = round(inter_mean, 2)
-
+            if test == "Inter_Batch_Imprecision":
+                key = (analyte, material)
+                analyzer_means.setdefault(key, {})[analyzer] = overall_mean
 
     # Inter-analyser differences
     analyser_comparison = []

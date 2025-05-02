@@ -27,7 +27,7 @@ with st.expander("📘 Why perform more statistical tests?", expanded=True):
 
 with st.expander("📘 How do I know which statistical test to choose?", expanded=False):
     st.markdown("""
-   
+    Understanding which statistical test is most appropriate for your data is sometimes a bit of a maze. This module incorporates a number of different statistical tests which are suitable for verification, validation, linearity adn 
     - **Anderson-Darling Test** – Determine if a sample of data comes from a specific distribution. 
     - **Bartlett's Test** – Assesses the equality of variances across multiple groups. It is sensitive to departures from normality and should only be used when data is approximately normally distributed.
     - **Chi-Squared Test** – Tests the independence of categorical variables or compares observed vs expected frequencies. Commonly used with contingency tables to assess distribution fit.

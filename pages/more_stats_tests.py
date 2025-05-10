@@ -73,8 +73,8 @@ module_map = {
 }
 
 # Create rows of buttons (3 per row)
-for i in range(0, len(test_names), 2):
-    cols = st.columns(2)
+for i in range(0, len(test_names), 3):
+    cols = st.columns(3)
     for col, test_name in zip(cols, test_names[i:i+3]):
         if col.button(test_name):
             st.session_state.selected_test = test_name

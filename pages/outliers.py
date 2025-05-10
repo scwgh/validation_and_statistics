@@ -107,7 +107,7 @@ with st.expander("📘 Why are we interested in outliers?", expanded=True):
                 \n - An outlier may indicate "bad data" (e.g., a transcription error, a sample mix-up, etc.)
                 \n - Random variation in the data. Random variation may happen and we can continue with our tests without worrying too much about this - but this not mean that we will want to exclude the outlying result from our data. 
                 \n Iglewicz and Hoaglin (1987) highlight the following three problems regarding outliers:
-                \n - Outlier labelling - this flags potential outliers for furhter investigation. 
+                \n - Outlier labelling - this flags potential outliers for further investigation. 
                 \n - Outlier accomomodation - this uses robust statistical methods to reduce the influence of outliers on the analysis.
                 \n - Outlier identification = this formally tests whether an observation or datapoint is an outlier. 
     """)

@@ -51,7 +51,7 @@ st.markdown(
 with st.spinner("Loading the analysis tools... Please wait!"):
     st.success("Analysis tools loaded successfully! 🎉 " \
     "\n Let's get started with your validation analysis!")
-    st.balloons()
+    # st.balloons()
 
 # --- About Section ---
 with st.expander("📖 About this App", expanded=True):

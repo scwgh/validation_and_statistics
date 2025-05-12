@@ -26,7 +26,7 @@ import kaleido
 
 # --- Streamlit Page Configuration ---
 st.set_page_config(
-    page_title="Validation and Statistical Analysis App - beta v.0.02",
+    page_title="Validation and Statistical Analysis App - beta v.0.03",
     page_icon=":computer:",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -42,7 +42,7 @@ st.sidebar.success("Select a validation process from the sidebar above.")
 # --- Main Page Welcome Message ---
 st.markdown(
     """
-    <h1>Welcome to the Validation and Statistical Analysis App (v.0.02) <span class='wave'>👋</span></h1>
+    <h1>Welcome to the Validation and Statistical Analysis App (v.0.03) <span class='wave'>👋</span></h1>
     """, 
     unsafe_allow_html=True
 )
@@ -59,6 +59,7 @@ with st.expander("📖 About this App", expanded=True):
         """
         ### 📖 About this App
         > This app is designed to assist laboratory professionals in performing validation and verification analyses. It provides a user-friendly interface for various statistical tests, including ANOVA, regression analysis, and more. For more information on each module, please refer to the sidebar.
+        > Please note, some modules in this app are in development (e.g., Kruskal-Wallis in Statistical Tests). Please DO NOT use modules flagged as "in development" until the message has been cleared.
         """)
 with st.expander("📂 Data Upload and Templates", expanded=False):
     st.markdown("""### 📂 Data Upload and Templates

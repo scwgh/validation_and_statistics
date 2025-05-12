@@ -48,7 +48,7 @@ with st.expander("📘 Imprecision Metrics Explained:", expanded=False):
     st.markdown("**🔹 Bias**: Bias is expressed as a percentage of the mean measured value versus the expected value.")
     st.latex(r'''\text{Bias (\%)} = \left( \frac{\bar{x} - \mu}{\mu} \right) \times 100''')
 
-    st.markdown("Grubb's test is used to identify outliers which are statistically significant")
+    st.markdown("**🔹 Grubb's test**, also known as Extreme Studentized Deviate (ESD) test, is used to identify outliers which are statistically significant from a univariate data set that follows an approximately normal distribution.")
 
 # --- Instructions ---
 with st.expander("📘 Instructions:", expanded=False): 
@@ -99,34 +99,6 @@ with st.expander("ℹ️ What are the Westgard Rules?"):
     \n Each rule helps identify potential issues in assay performance. You can toggle which rules are applied using the sidebar checkboxes.
     """)
 
-# --- Define Westgard Rules ---
-st.sidebar.markdown(
-    "<h3>📑 Apply Westgard Rules</h3>",
-    unsafe_allow_html=True
-)
-rules_enabled = {
-    '1_2s': st.sidebar.checkbox("1-2s Rule (warning)", value=True),
-    '1_3s': st.sidebar.checkbox("1-3s Rule", value=False),
-    '2_2s': st.sidebar.checkbox("2-2s Rule", value=False),
-    'R_4s': st.sidebar.checkbox("R-4s Rule", value=False),
-    '4_1s': st.sidebar.checkbox("4-1s Rule", value=False),
-    '10x': st.sidebar.checkbox("10x Rule", value=False),
-    '7T': st.sidebar.checkbox("7T Rule (Trend)", value=False),
-    '8x': st.sidebar.checkbox("8x Rule", value=False)
-}
-
-# --- Sidebar: Grubbs Outlier Detection ---
-st.sidebar.markdown("<h3>❌ Outliers</h3>", unsafe_allow_html=True)
-
-perform_grubbs = st.sidebar.checkbox("Identify outliers using Grubbs' test", value=False)
-exclude_grubbs = False
-if perform_grubbs:
-    exclude_grubbs = st.sidebar.checkbox("Exclude outliers from dataset", value=False)
-
-grubbs_outliers = {
-    "perform_grubbs": perform_grubbs,
-    "exclude_grubbs": exclude_grubbs
-}
 
 
 def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
@@ -255,7 +227,6 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
         st.info("No data available for plotting.")
 
     # -- Imprecision statistics for all --
-    # -- Imprecision statistics for all --
     analyzer_means = {}
 
     for analyte in df.columns[7:]:
@@ -372,7 +343,7 @@ if uploaded_file:
         st.stop()
 
     st.subheader("📖 Data Preview")
-    st.dataframe(df.head(20), use_container_width=True)
+    st.dataframe(df.head(5), use_container_width=True)
     required_columns = ['Material', 'Analyser', 'Test']
     if not all(col in df.columns for col in required_columns):
         st.error(f"The uploaded file must contain the columns: {', '.join(required_columns)}.")
@@ -384,6 +355,47 @@ if uploaded_file:
         # Select analyte for analysis
         analyte_options = df.columns[7:]
         selected_analyte = st.selectbox("🔎 Select Analyte to View", analyte_options)
+
+        # --- Westgard & Grubbs Controls Section (Below Analyte Dropdown) ---
+        with st.expander("⚙️ Settings: Westgard Rules & Outlier Detection", expanded=True):
+
+            
+            tab1, tab2 = st.tabs(["Westgard Rules", "Grubbs` Test"])
+
+            with tab1:
+                col1, col2 = st.columns(2)
+                with col1:
+                    rule_1_2s = st.checkbox("1-2s (warning)", value=True)
+                    rule_2_2s = st.checkbox("2-2s", value=False)
+                    rule_4_1s = st.checkbox("4-1s", value=False)
+                    rule_7T = st.checkbox("7T (trend)", value=False)
+                with col2:
+                    rule_1_3s = st.checkbox("1-3s", value=False)
+                    rule_R_4s = st.checkbox("R-4s", value=False)
+                    rule_10x = st.checkbox("10x", value=False)
+                    rule_8x = st.checkbox("8x", value=False)
+            with tab2:
+                perform_grubbs = st.checkbox("🔍 Grubbs' test", value=False)
+                exclude_grubbs = False
+                if perform_grubbs:
+                    exclude_grubbs = st.checkbox("🚫 Exclude outliers", value=False)
+
+            rules_enabled = {
+                '1_2s': rule_1_2s,
+                '1_3s': rule_1_3s,
+                '2_2s': rule_2_2s,
+                'R_4s': rule_R_4s,
+                '4_1s': rule_4_1s,
+                '10x': rule_10x,
+                '7T': rule_7T,
+                '8x': rule_8x
+            }
+
+            grubbs_outliers = {
+                "perform_grubbs": perform_grubbs,
+                "exclude_grubbs": exclude_grubbs
+            }
+
       
         # Analyze the filtered data
         with st.spinner("Analyzing..."):

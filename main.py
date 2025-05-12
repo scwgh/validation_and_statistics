@@ -58,13 +58,13 @@ with st.expander("📖 About this App", expanded=True):
     st.markdown(
         """
         ### 📖 About this App
-        > This app is designed to assist laboratory professionals in performing validation and verification analyses. It provides a user-friendly interface for various statistical tests, including ANOVA, regression analysis, and more. For more information on each module, please refer to the sidebar.
-        > Please note, some modules in this app are in development (e.g., Kruskal-Wallis in Statistical Tests). Please DO NOT use modules flagged as "in development" until the message has been cleared.
+        \n This app is designed to assist laboratory professionals in performing validation and verification analyses. It provides a user-friendly interface for various statistical tests, including linear regression, imprecision analysis, method comparison analysis and outlier testing. For more information on each module, please refer to the sidebar.
+        \n Please note, some modules in this app are in development (e.g., Kruskal-Wallis in Statistical Tests). Please DO NOT use modules flagged as "in development" until the message has been cleared.
         """)
 with st.expander("📂 Data Upload and Templates", expanded=False):
     st.markdown("""### 📂 Data Upload and Templates
     \n For each module, your data must be in CSV format. Ensure your data is structured according to the provided templates, available from the module in the sidebar. 
-    \n It is important that column names (i.e., Date, Material, Analyser, Sample ID) are consistent with the templates to ensure proper analysis. 
+    \n It is important that column names (i.e., Date, Material, Analyser, Sample ID, Batch ID and Lot Number) are consistent with the templates to ensure proper analysis. 
     \n You may insert as many analyte names as required - however, avoid introducing spaces or special characters **(e.g., @ : ; ! , . # < >)** in the column names.
     \n This app is intended for educational and informational purposes only. Always consult with a qualified professional for laboratory analyses and interpretations.
     """)
@@ -92,16 +92,20 @@ with st.expander("📖 Which modules are available?", expanded=False):
 
         - **Linearity**
 
-        - **Limits
-            - Limit of Blank (LOB)
-            - Limit of Detection (LOD)
-            - Limit of Quantitation (LOQ)  
+        - **Limits**
+            - 💧 Limit of Blank (LOB)
+            - 💧 Limit of Detection (LOD)
+            - 💧 Limit of Quantitation (LOQ)  
 
         - **Method Comparison**
             - 😵‍💫 ANOVA
             - 🥼 Bland-Altman Analysis
             - ⚖️ Deming Regression
             - 📊 Passing-Bablok Analysis
+                
+        - **Outliers**
+            - 🔎 Grubbs` Test
+            - 🔎 Tietjen-Moore Test
 
         - **More Statistical Tests**
             - 🧮 Chi-Squared Test
@@ -117,11 +121,7 @@ with st.expander("📖 Which modules are available?", expanded=False):
             - 📏 Shapiro-Wilk Test
             - 🔬 T-test
             - 🧪 Total Allowable Error (TEa)
-            - 📏 Z-test
-
-        
-        - **Outliers**
-        - **Reference Intervals**
+            - 📏 Z-test        
         """
     )
 

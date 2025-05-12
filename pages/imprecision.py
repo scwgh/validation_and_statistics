@@ -73,7 +73,7 @@ with st.expander("📘 Instructions:", expanded=False):
 
     ### 📊 Outlier Detection – Grubbs’ Test:
     - Grubbs’ Test identifies statistical outliers in your dataset (based on extreme deviation from the mean).
-    - Use the sidebar checkbox to:
+    - Use the dropdown checkbox to:
         - **Apply Grubbs’ Test** to identify potential outliers.
         - **Optionally exclude** flagged outliers from calculations.
 
@@ -360,7 +360,7 @@ if uploaded_file:
         with st.expander("⚙️ Settings: Westgard Rules & Outlier Detection", expanded=True):
 
             
-            tab1, tab2 = st.tabs(["Westgard Rules", "Grubbs` Test"])
+            tab1, tab2 = st.tabs(["Westgard Rules", "Perform Grubbs` Test"])
 
             with tab1:
                 col1, col2 = st.columns(2)
@@ -375,10 +375,10 @@ if uploaded_file:
                     rule_10x = st.checkbox("10x", value=False)
                     rule_8x = st.checkbox("8x", value=False)
             with tab2:
-                perform_grubbs = st.checkbox("🔍 Grubbs' test", value=False)
+                perform_grubbs = st.checkbox("🔍 Perform Grubbs' test to identify outlier", value=False)
                 exclude_grubbs = False
                 if perform_grubbs:
-                    exclude_grubbs = st.checkbox("🚫 Exclude outliers", value=False)
+                    exclude_grubbs = st.checkbox("🚫 Exclude outliers from calculations", value=False)
 
             rules_enabled = {
                 '1_2s': rule_1_2s,

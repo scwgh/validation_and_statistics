@@ -189,13 +189,14 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
         if grubbs_outliers.get("perform_grubbs"):
             outlier_alerts = grubbs_test(group[selected_analyte])
             outlier_indices = outlier_alerts["Outlier Indices"]
+            st.info(f"Grubbs' Test applied to {material} [{analyzer}]. No outliers identified.")
 
             for idx in outlier_indices:
                 fig.add_trace(go.Scatter(
                     x=[group.loc[idx, 'Date']],
                     y=[group.loc[idx, selected_analyte]],
                     mode='markers',
-                    marker=dict(color='crimson', size=10, symbol='square'),
+                    marker=dict(color='darkorchid', size=10, symbol='square'),
                     name='Grubbs` Outlier',
                     showlegend=False
                 ), row=row, col=col)
@@ -205,7 +206,7 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
                     f"{selected_analyte} = {group.loc[idx, selected_analyte]} ({group.loc[idx, 'Material']})"
                     for idx in outlier_indices
                 ]
-                st.info(f"Grubbs' Test applied to {material}, {analyzer}. {len(outlier_indices)} outlier(s): {' | '.join(outlier_details)}")
+                st.error(f"Grubbs' Test applied to {material} [{analyzer}]. {len(outlier_indices)} outlier(s): {' | '.join(outlier_details)}")
 
                 if grubbs_outliers.get("exclude_grubbs"):
                     group = group.drop(index=outlier_indices)
@@ -375,7 +376,7 @@ if uploaded_file:
                     rule_10x = st.checkbox("10x", value=False)
                     rule_8x = st.checkbox("8x", value=False)
             with tab2:
-                perform_grubbs = st.checkbox("🔍 Perform Grubbs' test to identify outlier", value=False)
+                perform_grubbs = st.checkbox("🔍 Perform Grubbs' test to identify outliers", value=False)
                 exclude_grubbs = False
                 if perform_grubbs:
                     exclude_grubbs = st.checkbox("🚫 Exclude outliers from calculations", value=False)

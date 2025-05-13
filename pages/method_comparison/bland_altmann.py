@@ -119,21 +119,74 @@ def run():
         )
         st.plotly_chart(fig2, use_container_width=True)
 
-        # --- Summary ---
-        st.markdown("### 📊 Statistical Summary")
-        st.markdown(f"""
-        - **Analyzers Compared**: `{analyzer_1}` vs `{analyzer_2}`  
-        - **Number of Samples**: {n}  
-        - **Mean Difference**: {mean_diff:.2f}  
-        - **Standard Deviation of Differences**: {std_diff:.2f}  
-        - **95% Limits of Agreement (LoA)**: [{loa_lower:.2f}, {loa_upper:.2f}]  
-        - **Paired t-test p-value**: {p_val:.4f}  
-        """)
-
         if p_val > 0.05:
             st.error("🔬 Statistically significant difference between the two analyzers (p > 0.05).")
         else:
             st.success("✅ No statistically significant difference between the two analyzers (p ≤ 0.05).")
+
+
+        # --- Summary Table for All Analytes ---
+        # --- Full Summary Table: All Materials × All Analytes ---
+        st.markdown("### 📊 Bland-Altmann Statistical Summary")
+
+        summary_table = []
+
+        for material in df['Material'].unique():
+            for analyte in analytes:
+                try:
+                    data = df[df['Material'] == material][['Analyser', 'Sample ID', analyte]].dropna()
+                    data[analyte] = pd.to_numeric(data[analyte], errors='coerce')
+
+                    analyzers = data['Analyser'].unique()
+                    if len(analyzers) < 2:
+                        continue
+
+                    df1 = data[data['Analyser'] == analyzers[0]].reset_index(drop=True)
+                    df2 = data[data['Analyser'] == analyzers[1]].reset_index(drop=True)
+                    min_len = min(len(df1), len(df2))
+                    if min_len == 0:
+                        continue
+
+                    vals1 = df1[analyte][:min_len]
+                    vals2 = df2[analyte][:min_len]
+                    diffs = vals1 - vals2
+                    means = (vals1 + vals2) / 2
+
+                    mean_diff = np.mean(diffs)
+                    std_diff = np.std(diffs, ddof=1)
+                    loa_upper = mean_diff + 1.96 * std_diff
+                    loa_lower = mean_diff - 1.96 * std_diff
+                    _, p_val = stats.ttest_rel(vals1, vals2)
+
+                    outcome = "Statistically significant" if p_val <= 0.05 else "Not statistically significant"
+
+                    summary_table.append({
+                    'Material': material,
+                    'Analyte': analyte,
+                    'N Samples': min_len,
+                    'Mean Difference': round(mean_diff, 3),
+                    'SD of Differences': round(std_diff, 3),
+                    'LoA Lower': round(loa_lower, 3),
+                    'LoA Upper': round(loa_upper, 3),
+                    'p-value': round(p_val, 3),
+                    'Outcome': outcome
+                })
+                except Exception as e:
+                    st.warning(f"⚠️ Could not process '{analyte}' for material '{material}': {e}")
+
+        if summary_table:
+            summary_df = pd.DataFrame(summary_table)
+
+            # Sort by Material, then p-value
+            summary_df.sort_values(by=["Material", "p-value"], inplace=True)
+
+            # Highlight statistically different rows
+            def highlight_significant(row):
+                return ['background-color: #ffcccc' if row['p-value'] <= 0.05 else ' ' for _ in row]
+
+            st.dataframe(summary_df.style.apply(highlight_significant, axis=1), use_container_width=True)
+
+
 
     # --- File Upload ---
     with st.expander("📤 Upload Your CSV File", expanded=True):
@@ -152,70 +205,3 @@ def run():
             selected_analyte = st.selectbox("Select Analyte", analytes)
 
             bland_altmann_analysis(df, material_type, selected_analyte)
-
-
-# --- Run Bland-Altman for ALL analytes and download ---
-    if uploaded_file and 'df' in locals():
-        st.markdown("### 📁 Download Bland-Altman Results for All Analytes")
-
-    if st.button("📊 Run for All Analytes"):
-        analytes = [col for col in df.columns if col not in ['Analyser', 'Material', 'Sample ID', 'Date', 'Test']]
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            for analyte in analytes:
-                try:
-                    data = df[df['Material'] == material_type][['Analyser', 'Sample ID', analyte]].dropna()
-                    data[analyte] = pd.to_numeric(data[analyte], errors='coerce')
-
-                    analyzers = data['Analyser'].unique()
-                    if len(analyzers) < 2:
-                        continue
-
-                    df1 = data[data['Analyser'] == analyzers[0]].reset_index(drop=True)
-                    df2 = data[data['Analyser'] == analyzers[1]].reset_index(drop=True)
-                    min_len = min(len(df1), len(df2))
-                    if min_len == 0:
-                        continue
-
-                    vals1 = df1[analyte][:min_len]
-                    vals2 = df2[analyte][:min_len]
-                    diffs = vals1 - vals2
-                    means = (vals1 + vals2) / 2
-                    percent_diffs = (diffs / means.replace(0, np.nan)) * 100
-
-                    mean_diff = np.mean(diffs)
-                    std_diff = np.std(diffs, ddof=1)
-                    loa_upper = mean_diff + 1.96 * std_diff
-                    loa_lower = mean_diff - 1.96 * std_diff
-                    _, p_val = stats.ttest_rel(vals1, vals2)
-
-                    summary_df = pd.DataFrame({
-                        'Sample ID': df1['Sample ID'][:min_len],
-                        'Analyzer 1': vals1,
-                        'Analyzer 2': vals2,
-                        'Mean': means,
-                        'Difference': diffs,
-                        '% Difference': percent_diffs
-                    })
-
-                    stats_row = pd.DataFrame([{
-                        'Sample ID': 'Summary',
-                        'Analyzer 1': '',
-                        'Analyzer 2': '',
-                        'Mean': f"{mean_diff:.2f}",
-                        'Difference': f"LoA: {loa_lower:.2f} to {loa_upper:.2f}",
-                        '% Difference': f"p={p_val:.4f}"
-                    }])
-
-                    final_df = pd.concat([summary_df, stats_row])
-                    final_df.to_excel(writer, sheet_name=analyte[:31], index=False)
-                except Exception as e:
-                    st.warning(f"Failed for {analyte}: {e}")
-
-        output.seek(0)
-        st.download_button(
-            label="⬇️ Download Excel File",
-            data=output,
-            file_name="bland_altman_all_analytes.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )

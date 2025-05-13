@@ -28,7 +28,7 @@ with st.expander("📘 Why perform Method Comparison?", expanded=True):
 
     These tools support analytical method validation, troubleshooting, and cross-platform harmonization.
     
-    **Disclaimer:** the _ANOVA_ modules are in development. Please DO NOT use these functions until further notice
+    **Disclaimer:** the _ANOVA_ modules are in development. If you identify any error using these modules, please log on Github.
     """)
 
 # Define available tests and their module names

@@ -186,8 +186,6 @@ def run():
 
             st.dataframe(summary_df.style.apply(highlight_significant, axis=1), use_container_width=True)
 
-
-
     # --- File Upload ---
     with st.expander("📤 Upload Your CSV File", expanded=True):
         st.markdown("Upload a CSV containing your analyte data. Ensure it includes the following columns: `Material`, `Analyser`, and `Sample ID`.")

@@ -71,8 +71,8 @@ def run():
         df_long = df_qc.melt(id_vars=id_vars, value_vars=analyte_cols,
                              var_name='Analyte', value_name='Value').dropna()
 
-        st.subheader("📊 Long Format Data")
-        st.dataframe(df_long.head())
+        # st.subheader("📊 Long Format Data")
+        # st.dataframe(df_long.head())
 
         # Ensure enough levels
         if df_long['Material'].nunique() < 2:
@@ -100,20 +100,26 @@ def run():
                 p = p_values[factor]
                 st.markdown(f"**{factor}** — p-value: `{p:.4f}` → {'✅ Significant' if p < 0.05 else '❌ Not Significant'}")
 
-            # Violin plot
+            # Violin plot for one analyte at a time
             st.subheader("🎻 Violin Plot")
+
+            analyte_options = df_long['Analyte'].unique().tolist()
+            selected_analyte = st.selectbox("Select Analyte to Visualize", analyte_options)
+
             color_by = 'LotNo' if 'LotNo' in df_qc.columns else 'Analyser'
+            df_plot = df_long[df_long['Analyte'] == selected_analyte]
+
             fig = px.violin(
-                df_long,
+                df_plot,
                 x="Material",
                 y="Value",
                 color=color_by,
                 box=True,
                 points="all",
-                facet_col="Analyte",
-                category_orders={"Material": sorted(df_long["Material"].unique())},
-                title="Distribution by QC Level and Analyte"
+                category_orders={"Material": sorted(df_plot["Material"].unique())},
+                title=f"Distribution of {selected_analyte} by QC Level"
             )
+
             st.plotly_chart(fig, use_container_width=True)
 
             # Download ANOVA table

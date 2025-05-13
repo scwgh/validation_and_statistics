@@ -85,12 +85,12 @@ def run():
                 # Step 7: Display results in combined summary table
                 if all_results:
                     results_df = pd.DataFrame(all_results)
-                    st.markdown("### 📊 Combined Summary for All Materials")
+                    st.markdown("### 📊 Deming Regression Statistical Summary ")
 
                     # Show full results for all analytes and materials
                     st.dataframe(results_df)
 
-
+                    
 def deming_regression_analysis(df, analyzer_1, analyzer_2, selected_material, units, selected_analyte, confidence_level, alpha):
     # Filter the dataframe to include only the selected analyte and relevant columns
     ignore_cols = ['Material', 'Analyser', 'Date', 'Sample ID']
@@ -164,13 +164,13 @@ def deming_regression_analysis(df, analyzer_1, analyzer_2, selected_material, un
         'Material': selected_material,
         'Analyzer 1': analyzer_1,
         'Analyzer 2': analyzer_2,
-        'Slope': round(slope, 4),
-        'Intercept': round(intercept, 4),
-        'R²': round(r_squared, 4),
+        'Slope': round(slope, 3),
+        'Intercept': round(intercept, 3),
+        'R²': round(r_squared, 3),
         'n': len(pivot),
-        'Critical t-value': round(t_val, 4),
-        'SE (Slope)': round(se_slope, 4),
-        'p-value': round(p_val, 4),
+        'Critical t-value': round(t_val, 3),
+        'SE (Slope)': round(se_slope, 3),
+        'p-value': round(p_val, 3),
         'Outcome': "Statistically significant bias" if p_val <= 0.05 else "No statistically significant bias"
     })
     

@@ -63,66 +63,167 @@ def run():
         diffs = vals1 - vals2
         percent_diffs = (diffs / ((vals1 + vals2) / 2).replace(0, np.nan)) * 100
 
+        # Outlier detection (1.5 x IQR)
+        Q1, Q3 = np.percentile(diffs, [25, 75])
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+
+        # Identify outliers
+        is_outlier = (diffs < lower_bound) | (diffs > upper_bound)
+
+        # Display a checkbox to exclude outliers
+        exclude_outliers = st.checkbox("Exclude outliers from analysis", value=True)
+
+        if exclude_outliers:
+            # Exclude outliers if checkbox is checked
+            valid_indices = diffs[(diffs >= lower_bound) & (diffs <= upper_bound)].index
+            vals1, vals2 = vals1.loc[valid_indices], vals2.loc[valid_indices]
+
+            # Show warning and outlier information
+            outliers = diffs[(diffs < lower_bound) | (diffs > upper_bound)]
+            outlier_ids = df1.loc[outliers.index, 'Sample ID'].tolist()
+            if outlier_ids:
+                st.warning(f"⚠️ Outliers excluded: Sample IDs: {', '.join(map(str, outlier_ids))}")
+        # else:
+        #     # If not excluding outliers, use all data
+        #     valid_indices = diffs.index
+        #     st.info("Outliers are included in the analysis.")
+
+        # Re-calculate statistics (mean difference, LoA, p-value)
+        diffs = vals1 - vals2
+        means = (vals1 + vals2) / 2
+
         mean_diff = np.mean(diffs)
         std_diff = np.std(diffs, ddof=1)
         loa_upper = mean_diff + 1.96 * std_diff
         loa_lower = mean_diff - 1.96 * std_diff
         n = len(diffs)
 
-        # Paired t-test
+        # Paired t-test (without outliers if checkbox is checked)
         t_stat, p_val = stats.ttest_rel(vals1, vals2)
+
+        
 
         # --- Plot: Numerical Differences ---
         fig1 = go.Figure()
+
+        # Add scatter plot for differences (for non-outliers)
         fig1.add_trace(go.Scatter(
-            x=means, 
-            y=diffs, 
+            x=means[~is_outlier],  # Non-outlier points
+            y=diffs[~is_outlier],
             mode='markers',
-            marker=dict(color='dimgray', symbol='square'),
+            marker=dict(color='dimgray', symbol='circle'),
             name='Sample',
-            hovertemplate='Mean: %{x:.2f}<br>Diff: %{y:.2f}<extra></extra>'
+            hovertemplate='<b>Sample ID: %{text}</b><br>Mean: %{x:.3f}<br>Diff: %{y:.3f}<extra></extra>',
+            text=df1['Sample ID'][:min_len][~is_outlier]  # Adding Sample ID as a text attribute
         ))
 
-        fig1.add_hline(y=mean_diff, line_color='blue', annotation_text=f"Mean Diff: {mean_diff:.2f}", annotation_position="top left")
-        fig1.add_hline(y=loa_upper, line_color='blue', line_dash='dash', annotation_text=f"+1.96 SD: {loa_upper:.2f}")
-        fig1.add_hline(y=loa_lower, line_color='blue', line_dash='dash', annotation_text=f"-1.96 SD: {loa_lower:.2f}")
+        # Add scatter plot for outliers
+        fig1.add_trace(go.Scatter(
+            x=means[is_outlier],  # Outlier points
+            y=diffs[is_outlier],
+            mode='markers',
+            marker=dict(color='deeppink', symbol='square'),
+            name='Outlier',
+            hovertemplate='<b>Sample ID: %{text}</b><br>Mean: %{x:.3f}<br>Diff: %{y:.3f}<extra></extra>',
+            text=df1['Sample ID'][:min_len][is_outlier]  # Adding Sample ID as a text attribute
+        ))
 
+        # Shading for Limits of Agreement (LoA)
+        fig1.add_trace(go.Scatter(
+            x=np.concatenate([means, means[::-1]]), 
+            y=np.concatenate([loa_upper * np.ones_like(means), loa_lower * np.ones_like(means[::-1])]),
+            fill='toself',
+            fillcolor='rgba(144, 238, 144, 0.3)',  # Pale green for LoA
+            line=dict(color='rgba(255,255,255,0)'),
+            name="Limits of Agreement (LoA)"
+        ))
+
+        # Adding reference lines for Mean Diff and LoA
+        fig1.add_hline(y=mean_diff, line_color='blue', annotation_text=f"Mean Diff: {mean_diff:.3f}", annotation_position="top left")
+        fig1.add_hline(y=loa_upper, line_color='blue', line_dash='dash', annotation_text=f"+1.96 SD: {loa_upper:.3f}")
+        fig1.add_hline(y=loa_lower, line_color='blue', line_dash='dash', annotation_text=f"-1.96 SD: {loa_lower:.3f}")
+
+        # Update layout for plot
         fig1.update_layout(
             title=f"{selected_analyte} - Bland-Altmann Plot (Numerical Difference)",
             xaxis_title="Mean of Two Analyzers",
             yaxis_title="Difference",
             template="plotly_white"
         )
+
+        # Display plot
         st.plotly_chart(fig1, use_container_width=True)
 
         # --- Plot: Percentage Differences ---
         fig2 = go.Figure()
+
+        # Add scatter plot for percentage differences (for non-outliers)
         fig2.add_trace(go.Scatter(
-            x=means / 2, 
-            y=percent_diffs, 
+            x=means[~is_outlier],  # Non-outlier points
+            y=percent_diffs[~is_outlier],
             mode='markers',
             marker=dict(color='dimgray', symbol='square'),
             name='Sample',
-            hovertemplate='Mean/2: %{x:.2f}<br>% Diff: %{y:.2f}<extra></extra>'
+            hovertemplate='<b>Sample ID: %{text}</b><br>Mean: %{x:.3f}<br>% Diff: %{y:.3f}<extra></extra>',
+            text=df1['Sample ID'][:min_len][~is_outlier]  # Adding Sample ID as a text attribute
         ))
-        fig2.add_hline(y=0, line_color='grey')
-        fig2.add_hline(y=np.mean(percent_diffs), line_color='blue',
-                       annotation_text=f"Mean % Diff: {np.mean(percent_diffs):.2f}", annotation_position="top left")
-        fig2.add_hline(y=np.mean(percent_diffs) + 1.96 * np.std(percent_diffs, ddof=1), line_color='blue', line_dash='dash')
-        fig2.add_hline(y=np.mean(percent_diffs) - 1.96 * np.std(percent_diffs, ddof=1), line_color='blue', line_dash='dash')
 
+        # Add scatter plot for outliers in percentage differences
+        fig2.add_trace(go.Scatter(
+            x=means[is_outlier],  # Outlier points
+            y=percent_diffs[is_outlier],
+            mode='markers',
+            marker=dict(color='deeppink', symbol='square'),
+            name='Outlier',
+            hovertemplate='<b>Sample ID: %{text}</b><br>Mean: %{x:.3f}<br>% Diff: %{y:.3f}<extra></extra>',
+            text=df1['Sample ID'][:min_len][is_outlier]  # Adding Sample ID as a text attribute
+        ))
+
+        # Calculate mean and standard deviation for the percentage differences
+        mean_percent_diff = np.mean(percent_diffs)
+        std_percent_diff = np.std(percent_diffs, ddof=1)
+
+        # Upper and lower limits of agreement for percentage differences
+        loa_upper_percent_diff = mean_percent_diff + 1.96 * std_percent_diff
+        loa_lower_percent_diff = mean_percent_diff - 1.96 * std_percent_diff
+
+        # Shading for Limits of Agreement (LoA)
+        fig2.add_trace(go.Scatter(
+            x=np.concatenate([means, means[::-1]]),  # Concatenate means for shaded area
+            y=np.concatenate([loa_upper_percent_diff * np.ones_like(means), loa_lower_percent_diff * np.ones_like(means[::-1])]),
+            fill='toself',
+            fillcolor='rgba(144, 238, 144, 0.3)',  # Pale green for LoA shading
+            line=dict(color='rgba(255,255,255,0)'),
+            name="Limits of Agreement (LoA)"
+        ))
+
+        # Add reference lines for Mean Percent Diff and LoA
+        fig2.add_hline(y=0, line_color='grey', annotation_text="Zero Diff", annotation_position="bottom left")
+        fig2.add_hline(y=mean_percent_diff, line_color='blue', annotation_text=f"Mean % Diff: {mean_percent_diff:.3f}", annotation_position="top left")
+        fig2.add_hline(y=loa_upper_percent_diff, line_color='blue', line_dash='dash', annotation_text=f"+1.96 SD: {loa_upper_percent_diff:.3f}")
+        fig2.add_hline(y=loa_lower_percent_diff, line_color='blue', line_dash='dash', annotation_text=f"-1.96 SD: {loa_lower_percent_diff:.3f}")
+
+        # Update layout for the plot
         fig2.update_layout(
             title=f"{selected_analyte} - Bland-Altmann Plot (% Difference)",
-            xaxis_title="Mean of Two Analyzers / 2",
+            xaxis_title="Mean of Two Analyzers",
             yaxis_title="Percentage Difference (%)",
             template="plotly_white"
         )
+
+        # Display the plot
         st.plotly_chart(fig2, use_container_width=True)
 
-        if p_val > 0.05:
-            st.error("✅ No statistically significant difference between the two analyzers (p ≤ 0.05).")
+    # # Display the p-value after re-processing the statistics
+    #     st.info(f"P-Value (with outliers{' excluded' if exclude_outliers else ' included'}): {p_val:.5f}")
+
+        # Display p-value message based on significance
+        if p_val <= 0.05:
+            st.error(f"🔬 Statistically significant difference between the two analyzers (p ≤ 0.05). P-Value (with outliers{' excluded' if exclude_outliers else ' included'}): {p_val:.5f}")
         else:
-            st.success("🔬 Statistically significant difference between the two analyzers (p > 0.05).")
+            st.success("✅ No statistically significant difference between the two analyzers (p > 0.05).")
 
         # --- Full Summary Table: All Materials × All Analytes ---
         st.markdown("### 📊 Bland-Altmann Statistical Summary")
@@ -130,10 +231,13 @@ def run():
         summary_table = []
 
         for material in df['Material'].unique():
-            for analyte in analytes:
+            # Select analytes from columns with index 7 onwards
+            analytes = df.columns[7:]
+
+            for selected_analyte in analytes:
                 try:
-                    data = df[df['Material'] == material][['Analyser', 'Sample ID', analyte]].dropna()
-                    data[analyte] = pd.to_numeric(data[analyte], errors='coerce')
+                    data = df[df['Material'] == material][['Analyser', 'Sample ID', selected_analyte]].dropna()
+                    data[selected_analyte] = pd.to_numeric(data[selected_analyte], errors='coerce')
 
                     analyzers = data['Analyser'].unique()
                     if len(analyzers) < 2:
@@ -145,8 +249,8 @@ def run():
                     if min_len == 0:
                         continue
 
-                    vals1 = df1[analyte][:min_len]
-                    vals2 = df2[analyte][:min_len]
+                    vals1 = df1[selected_analyte][:min_len]
+                    vals2 = df2[selected_analyte][:min_len]
                     diffs = vals1 - vals2
                     means = (vals1 + vals2) / 2
 
@@ -160,7 +264,7 @@ def run():
 
                     summary_table.append({
                     'Material': material,
-                    'Analyte': analyte,
+                    'Analyte': selected_analyte,
                     'N Samples': min_len,
                     'Mean Difference': round(mean_diff, 3),
                     'SD of Differences': round(std_diff, 3),
@@ -170,7 +274,7 @@ def run():
                     'Outcome': outcome
                 })
                 except Exception as e:
-                    st.warning(f"⚠️ Could not process '{analyte}' for material '{material}': {e}")
+                    st.warning(f"⚠️ Could not process '{selected_analyte}' for material '{material}': {e}")
 
         if summary_table:
             summary_df = pd.DataFrame(summary_table)
@@ -197,7 +301,8 @@ def run():
             st.error(f"Missing required columns: {', '.join(required_cols)}")
         else:
             material_type = st.selectbox("Select Material Type", df['Material'].unique())
-            analytes = [col for col in df.columns if col not in required_cols + ['Date', 'Test']]
+            # Adjusted to select analytes from columns starting at index 7
+            analytes = df.columns[7:]
             selected_analyte = st.selectbox("Select Analyte", analytes)
 
             bland_altmann_analysis(df, material_type, selected_analyte)

@@ -219,11 +219,11 @@ def run():
     # # Display the p-value after re-processing the statistics
     #     st.info(f"P-Value (with outliers{' excluded' if exclude_outliers else ' included'}): {p_val:.5f}")
 
-        # Display p-value message based on significance
-        if p_val <= 0.05:
-            st.error(f"🔬 Statistically significant difference between the two analyzers (p ≤ 0.05). P-Value (with outliers{' excluded' if exclude_outliers else ' included'}): {p_val:.5f}")
-        else:
-            st.success("✅ No statistically significant difference between the two analyzers (p > 0.05).")
+        # # Display p-value message based on significance
+        # if p_val <= 0.05:
+        #     st.error(f"🔬 Statistically significant difference between the two analyzers (p ≤ 0.05). P-Value (with outliers{' excluded' if exclude_outliers else ' included'}): {p_val:.5f}")
+        # else:
+        #     st.success("✅ No statistically significant difference between the two analyzers (p > 0.05).")
 
         # --- Full Summary Table: All Materials × All Analytes ---
         st.markdown("### 📊 Bland-Altmann Statistical Summary")

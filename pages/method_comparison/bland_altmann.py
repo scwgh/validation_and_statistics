@@ -124,8 +124,6 @@ def run():
         else:
             st.success("🔬 Statistically significant difference between the two analyzers (p > 0.05).")
 
-
-        # --- Summary Table for All Analytes ---
         # --- Full Summary Table: All Materials × All Analytes ---
         st.markdown("### 📊 Bland-Altmann Statistical Summary")
 

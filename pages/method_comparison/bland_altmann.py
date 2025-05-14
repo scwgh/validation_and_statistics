@@ -120,9 +120,9 @@ def run():
         st.plotly_chart(fig2, use_container_width=True)
 
         if p_val > 0.05:
-            st.error("🔬 Statistically significant difference between the two analyzers (p > 0.05).")
+            st.error("✅ No statistically significant difference between the two analyzers (p ≤ 0.05).")
         else:
-            st.success("✅ No statistically significant difference between the two analyzers (p ≤ 0.05).")
+            st.success("🔬 Statistically significant difference between the two analyzers (p > 0.05).")
 
 
         # --- Summary Table for All Analytes ---

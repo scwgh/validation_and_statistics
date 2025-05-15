@@ -99,8 +99,6 @@ with st.expander("ℹ️ What are the Westgard Rules?"):
     \n Each rule helps identify potential issues in assay performance. You can toggle which rules are applied using the sidebar checkboxes.
     """)
 
-
-
 def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
     results = []
     outlier_indices = []
@@ -138,41 +136,49 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
         overall_mean = round(group[selected_analyte].mean(), 2)
         sd = round(group[selected_analyte].std(), 2)
 
+        # Use the first occurrence of each name for showlegend and legendgroup
+        legend_flag = True if row == 1 and col == 2 else False  # Show legend only for the top-right plot
+        legend_group_sample = 'Sample'
+        legend_group_mean = 'Mean'
+        legend_group_sd = 'SD'
+        legend_group_outlier = 'Outlier'
+
+        # Add traces to the plot
         fig.add_trace(go.Scatter(
             x=group['Date'], y=group[selected_analyte], mode='markers',
             marker=dict(color='darkblue', size=6, opacity=0.6),
-            name='Sample', showlegend=True
+            name='Sample', showlegend=legend_flag, legendgroup=legend_group_sample
         ), row=row, col=col)
 
         # Add Error Bars (Mean ± SD)
         fig.add_trace(go.Scatter(
             x=group['Date'], y=[overall_mean] * len(group),
             mode='lines', line=dict(color='dodgerblue', dash='solid'),
-            name='Mean', showlegend=True
+            name='Mean', showlegend=legend_flag, legendgroup=legend_group_mean
         ), row=row, col=col)
 
         fig.add_trace(go.Scatter(
             x=group['Date'], y=[overall_mean + (2*sd)] * len(group),
             mode='lines', line=dict(color='green', dash='dash'),
-            name='+2 SD', showlegend=True
+            name='+2 SD', showlegend=legend_flag, legendgroup=legend_group_sd
         ), row=row, col=col)
 
         fig.add_trace(go.Scatter(
             x=group['Date'], y=[overall_mean - (2*sd)] * len(group),
             mode='lines', line=dict(color='green', dash='dash'),
-            name='-2 SD', showlegend=True
+            name='-2 SD', showlegend=legend_flag, legendgroup=legend_group_sd
         ), row=row, col=col)
 
         fig.add_trace(go.Scatter(
             x=group['Date'], y=[overall_mean + (3*sd)] * len(group),
             mode='lines', line=dict(color='red', dash='dash'),
-            name='+3 SD', showlegend=True
+            name='+3 SD', showlegend=legend_flag, legendgroup=legend_group_sd
         ), row=row, col=col)
 
         fig.add_trace(go.Scatter(
             x=group['Date'], y=[overall_mean - (3*sd)] * len(group),
             mode='lines', line=dict(color='red', dash='dash'),
-            name='-3 SD', showlegend=True
+            name='-3 SD', showlegend=legend_flag, legendgroup=legend_group_sd
         ), row=row, col=col)
 
         # --- Apply Westgard Alerts ---
@@ -181,7 +187,7 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
             fig.add_trace(go.Scatter(
                 x=[group['Date'].iloc[i]], y=[group[selected_analyte].iloc[i]],
                 mode='markers', marker=dict(color='crimson', size=9, symbol='x'),
-                name=f'Violation: {rule}', showlegend=False
+                name=f'Violation: {rule}', showlegend=False, legendgroup='Violation'
             ), row=row, col=col)
 
         # After applying Grubbs' test and identifying outliers, gather the details
@@ -198,7 +204,9 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
                     mode='markers',
                     marker=dict(color='darkorchid', size=10, symbol='square'),
                     name='Grubbs` Outlier',
-                    showlegend=False
+                    showlegend=legend_flag, legendgroup=legend_group_outlier, 
+                    hovertemplate=(
+                        '%{x}<br>' + '{y}'),
                 ), row=row, col=col)
 
             if outlier_indices:
@@ -219,13 +227,13 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
         fig.update_layout(
             height=400 * ((num_plots + 1) // 2),
             title_text=f"{selected_analyte} - Inter-Batch Imprecision (All Analyzers)",
-            showlegend=False,
             template='plotly_white',
             margin=dict(t=50, l=30, r=30, b=30)
         )
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("No data available for plotting.")
+
 
     # -- Imprecision statistics for all --
     analyzer_means = {}

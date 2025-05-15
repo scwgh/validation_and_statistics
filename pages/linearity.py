@@ -147,6 +147,28 @@ if df is not None:
             except TypeError:
                 st.error("❌ Ensure X and Y axis selections are numeric and 1D.")
 
+            with st.expander("📊 Recovery"):
+                st.subheader("📊 Recovery Calculation")
+                selectable_columns = df.columns[6:]
+                expected_column = st.selectbox("Select the Expected (e.g., C26)", selectable_columns)
+                calculated_column = st.selectbox("Select the Calculated (e.g., Calculated C26)", selectable_columns)
+
+                clean_df["Sample ID"] = df["Sample ID"] if "Sample ID" in df.columns else "N/A"
+                clean_df["Expected (" + str(units) + ")"] = df[expected_column]
+                clean_df["Calculated (" + str(units) + ")"] = df[calculated_column]
+
+                clean_df["Recovery (%)"] = np.where(clean_df["Expected (" + str(units) + ")"] > 0, (clean_df["Calculated (" + str(units) + ")"] / clean_df["Expected (" + str(units) + ")"]) * 100, np.nan)
+
+                show_mean = st.checkbox("Show Recovery Summary (per Sample)")
+
+                if show_mean:
+                    mean_df = clean_df.groupby("Sample ID").agg({"Expected (" + str(units) + ")": "mean", "Calculated (" + str(units) + ")": "mean", "Recovery (%)": "mean"}).reset_index().round(2)
+                    st.markdown("### 📊 Mean Recovery Table")
+                    st.dataframe(mean_df)
+                else:
+                    st.markdown("### 📊 Recovery Table")
+                    st.dataframe(clean_df[["Sample ID", x_axis, y_axis, "Expected (" + str(units) + ")", "Calculated (" + str(units) + ")", "Recovery (%)"]])
+
             if results_df is not None:
                 st.markdown("### 📅 Download Results")
                 st.markdown("Download the standard curve results including fitted values and residuals.")
@@ -158,4 +180,5 @@ if df is not None:
                     mime="text/csv"
                 )
 
-    st.markdown("---")
+
+

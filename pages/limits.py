@@ -36,14 +36,14 @@ with st.expander("📘 Instructions"):
     1. Upload a CSV file with your limit data.
     2. Ensure the file includes repeated blank samples labeled in the `Material` column.
     3. Select the analyte columns (numeric values expected).
-    4. Click the button below to calculate LOB.
+    4. The calculation results will appear below once performed.
     """)
     st.markdown("""***For LOD/LOQ analysis:***""")
     st.markdown("""
     1. Upload a CSV file with your limit data.
     2. Ensure the file includes repeated low concentration samples labeled in the `Material` column (e.g., LowConc1).
     3. Select the analyte columns (numeric values expected).
-    4. Click the button below to calculate LOD and LOQ.
+    4. The calculation results will appear below once performed.
     """)
 
 # --- File Upload Function ---
@@ -98,12 +98,12 @@ def calculate_lob(df):
     st.subheader("📊 Limit of Blank (LOB) Summary")
     st.dataframe(result_df)
 
-    st.download_button(
-        label="⬇️ Download LOB Results as CSV",
-        data=result_df.to_csv(index=False),
-        file_name="lob_results.csv",
-        mime="text/csv"
-    )
+    # st.download_button(
+    #     label="⬇️ Download LOB Results as CSV",
+    #     data=result_df.to_csv(index=False),
+    #     file_name="lob_results.csv",
+    #     mime="text/csv"
+    # )
 
 # --- Calculation Logic for LOD & LOQ ---
 def calculate_lod_loq(df):
@@ -140,23 +140,25 @@ def calculate_lod_loq(df):
     st.subheader("📊 Limit of Detection (LOD) & Limit of Quantification (LOQ) Summary")
     st.dataframe(result_df)
 
-    st.download_button(
-        label="⬇️ Download LOD/LOQ Results as CSV",
-        data=result_df.to_csv(index=False),
-        file_name="lod_loq_results.csv",
-        mime="text/csv"
-    )
+    # st.download_button(
+    #     label="⬇️ Download LOD/LOQ Results as CSV",
+    #     data=result_df.to_csv(index=False),
+    #     file_name="lod_loq_results.csv",
+    #     mime="text/csv"
+    # )
 
 # --- Upload data ---
 df = upload_data()  # Ensure the file is uploaded before performing analysis
 
-# --- Calculate LOB ---
-if df is not None and st.button("Calculate Limit of Blank (LOB)"):
-    calculate_lob(df)
+# --- LOB Calculation Expander ---
+with st.expander("📊 Calculate Limit of Blank (LOB)", expanded=True):
+    if df is not None:
+        calculate_lob(df)
 
-# --- Calculate LOD & LOQ ---
-if df is not None and st.button("Calculate Limit of Detection (LOD) & Limit of Quantification (LOQ)"):
-    calculate_lod_loq(df)
+# --- LOD & LOQ Calculation Expander ---
+with st.expander("📊 Calculate Limit of Detection (LOD) & Limit of Quantification (LOQ)", expanded=True):
+    if df is not None:
+        calculate_lod_loq(df)
 
 # --- Optional Reference Section ---
 with st.expander("📚 References"):
@@ -168,5 +170,3 @@ with st.expander("📚 References"):
     **Pum, J. (2019)**, *Chapter Six - A practical guide to validation and verification of analytical methods in the clinical laboratory*, Advances in Clinical Chemistry: Volume 90, pp. 215-281.
     (https://www.sciencedirect.com/science/article/pii/S006524231930006X)
     """)
-    # st.markdown("""
-    #             **McMillan**""")

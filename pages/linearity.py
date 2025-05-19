@@ -16,6 +16,10 @@ apply_app_styling()
 
 st.title("📏 Linearity")
 
+# with st.spinner("Loading the analysis tools... Please wait!"):
+#     st.success("Analysis tools loaded successfully! 🎉 " \
+#     "\n Let's get started with your validation analysis!")
+
 with st.expander("📘 Why assess linearity?", expanded=True):
     st.markdown("""
     **Linearity** refers to the ability of an analytical method to produce results that are directly proportional to the concentration of the analyte in the sample. 

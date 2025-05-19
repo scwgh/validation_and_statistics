@@ -58,25 +58,36 @@ with st.expander("📘 Instructions:", expanded=False):
     This tool allows you to assess **intra-well, intra-batch, and inter-batch imprecision** across different levels of control or patient materials.
 
     1. **Upload your CSV file** – it should contain repeated measurements for the same sample/material across different runs or days.
+        
 
     2. Your file should include the following columns:
-    - `Material` (e.g., QC1, QC2, QC3)
-    - `Analyser` (e.g., Waters TQ-D 1, Waters TQ-D 2)
+    
     - `Date` – can be in short or long date format
-    - One or more **analyte columns** – ensure consistent naming and avoid use of special characters
+    - `Test` (e.g., Intra_Batch_Imprecision, Inter_Batch_Imprecision)
+    - `Analyser` (e.g., Waters TQ-D 1, Waters TQ-D 2)
+    - `Material` (e.g., QC1, QC2, QC3)
+    - `Sample ID` (e.g., 12345, 67890)
+    - `Batch ID` (e.g., Test_Batch_123)
+    - One or more **analyte columns** – ensure consistent naming and avoid use of special characters. You DO NOT need to include units in the column names.
+    
 
     3. After upload, the app will:
     - Group data by `Material`, `QC Level`, and `Analyte`
-    - Calculate intra-well, intra-batch, and inter-batch imprecision
+    - Calculate intra-well, intra-batch, and inter-batch imprecision (if data is available).
     - Generate summary statistics and visualizations for each analyte
-    - Allow export of calculated results and outlier summaries
-    - Westgard rules are applied to imprecision charts.
-    - Use the toggle in the sidebar to enable or disable rule overlays.
 
-    ### 📊 Outlier Detection – Grubbs’ Test:
+    4. **Select the analyte** you want to analyze from the dropdown menu.
+    - The app will filter the data accordingly and display the results.
+    - Use the toggle in the sidebar to enable or disable rule overlays, including Westgard rules and outlier identification using Grubbs` test.
+
+   ### ❌ Westgard Rules:
+    - Westgard rules are a set of statistical criteria used to monitor analytical performance and detect potential errors in quality control (QC) data.
+    - The app allows you to apply these rules to your data and visualize any violations using a red cross (❌).
+                
+    ### 🟪 Outlier Identification using – Grubbs’ Test:
     - Grubbs’ Test identifies statistical outliers in your dataset (based on extreme deviation from the mean).
-    - Use the dropdown checkbox to:
-        - **Apply Grubbs’ Test** to identify potential outliers.
+    - Using the tab at the top of the page, use the checkbox to:
+        - **Apply Grubbs’ Test** to identify potential outliers - outliers will be marked with a purple square (🟪).
         - **Optionally exclude** flagged outliers from calculations.
 
     """)

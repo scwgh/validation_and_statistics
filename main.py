@@ -26,7 +26,7 @@ import kaleido
 
 # --- Streamlit Page Configuration ---
 st.set_page_config(
-    page_title="Validation and Statistical Analysis App - v.0.03",
+    page_title="Validation and Statistical Analysis App - v. 1.03",
     page_icon=":computer:",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -42,7 +42,7 @@ st.sidebar.success("Select a validation process from the sidebar above.")
 # --- Main Page Welcome Message ---
 st.markdown(
     """
-    <h1>Welcome to the Validation and Statistical Analysis App (v.0.03) <span class='wave'>👋</span></h1>
+    <h1>Welcome to the Validation and Statistical Analysis App (v. 1.03) <span class='wave'>👋</span></h1>
     """, 
     unsafe_allow_html=True
 )
@@ -59,20 +59,21 @@ with st.expander("📖 About this App", expanded=True):
         """
         ### 📖 About this App
         \n This app is designed to assist laboratory professionals in performing validation and verification analyses. It provides a user-friendly interface for various statistical tests, including linear regression, imprecision analysis, method comparison analysis and outlier testing. For more information on each module, please refer to the sidebar.
-        \n Please note, some modules in this app are in development (e.g., Kruskal-Wallis in Statistical Tests). Please DO NOT use modules flagged as "in development" until the message has been cleared.
+        \n Please note, some modules in this app are in development (e.g., Anderson-Darling, Bartlett, Cochran, Kolmogorov-Smirnov, Kruskal-Wallis and Levene's Test in Statistical Tests). 
+        \n DO NOT use modules flagged as "in development" until the message has been cleared.
         """)
 with st.expander("📂 Data Upload and Templates", expanded=False):
     st.markdown("""### 📂 Data Upload and Templates
     \n For each module, your data must be in CSV format. Ensure your data is structured according to the provided templates, available from the module in the sidebar. 
-    \n It is important that column names (i.e., Date, Material, Analyser, Sample ID, Batch ID and Lot Number) are consistent with the templates to ensure proper analysis. 
-    \n You may insert as many analyte names as required - however, avoid introducing spaces or special characters **(e.g., @ : ; ! , . # < >)** in the column names.
-    \n This app is intended for educational and informational purposes only. Always consult with a qualified professional for laboratory analyses and interpretations.
+    \n It is important that column names and ordering (i.e., Date, Material, Analyser, Sample ID, Batch ID and Lot Number) are consistent with the templates to ensure proper analysis. 
+    \n You may insert as many analyte names as required - however, avoid introducing spaces or special characters **(e.g., @ : ; ! , . # < >)** in the column names or within your data.
+    \n The app will automatically detect the column names and provide options for selecting the appropriate columns for analysis.
+    \n If you encounter any issues with the templates or data upload, please refer to the documentation or contact support.
     """)
 with st.expander("🛠️ Development, Deployment, and Contact", expanded=False):
     st.markdown("""
     #### 🛠️ Development, Deployment, and Contact
     > This app was developed using Streamlit and is hosted on GitHub. The source code is available for review and contributions.
-    ---
     """)
 
 # --- Available Modules ---

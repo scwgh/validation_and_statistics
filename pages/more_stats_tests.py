@@ -22,7 +22,8 @@ with st.expander("📘 Why perform more statistical tests?", expanded=True):
     st.markdown("""
     This section provides additional statistical tests commonly used in laboratory validation and verification analysis.
     Use the buttons below to launch the test you're interested in.
-    \n **Disclaimer**: This section is **in development** and some of the features below may be prone to error. If you have any issues, please report them on the GitHub repository.
+    \n **Disclaimer**: This section is **in development** and some of the features below may be prone to error. The following buttons are NOT ACTIVE and are prone to error: Anderson-Darling, Bartlett, Cochran, Kolmogorov-Smirnov, Kruskal-Wallis and Levene's Test. 
+    \n If you encounter any further issues, please report them on the GitHub repository.
     """)
 
 with st.expander("📘 How do I know which statistical test to choose?", expanded=False):

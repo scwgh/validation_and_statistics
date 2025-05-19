@@ -26,7 +26,7 @@ import kaleido
 
 # --- Streamlit Page Configuration ---
 st.set_page_config(
-    page_title="Validation and Statistical Analysis App - beta v.0.03",
+    page_title="Validation and Statistical Analysis App - v.0.03",
     page_icon=":computer:",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -90,7 +90,7 @@ with st.expander("📖 Which modules are available?", expanded=False):
             - ⚗️ Inter-Batch Precision
             - 🥼 Total Imprecision
 
-        - **Linearity**
+        - **📈 Linearity**
 
         - **Limits**
             - 💧 Limit of Blank (LOB)

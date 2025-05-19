@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import os
 from scipy import stats
+from scipy.stats import f, ttest_ind
+import seaborn as sns
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from itertools import combinations
@@ -103,7 +105,7 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
     results = []
     outlier_indices = []
     filtered_data = df.copy()  # default if not computed
-    qc_df = df[df['Material'].str.startswith('QC', na=False)]
+    qc_df = df[df['Material'].str.contains('QC', na=False)]
 
     inter_batch_groups = qc_df[qc_df['Test'] == 'Inter_Batch_Imprecision'].groupby(['Material', 'Analyser'])
     
@@ -145,27 +147,38 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
 
         # Add traces to the plot
         fig.add_trace(go.Scatter(
-            x=group['Date'], y=group[selected_analyte], mode='markers',
-            marker=dict(color='darkblue', size=6, opacity=0.6),
-            name='Sample', showlegend=legend_flag, legendgroup=legend_group_sample
+            x=group['Date'], 
+            y=group[selected_analyte], 
+            mode='markers',
+            marker=dict(color='darkblue', size=6, opacity=0.8),
+            name='Sample', 
+            showlegend=legend_flag, 
+            legendgroup=legend_group_sample,
+            customdata=np.stack((group['Sample ID'], group['Date'].dt.strftime('%Y-%m-%d'), group[selected_analyte]), axis=-1),
+            hovertemplate=(
+                "Sample ID: %{customdata[0]}<br>" +
+                "Date: %{customdata[1]}<br>" +
+                selected_analyte + ": %{customdata[2]:.2f}<extra></extra>"
+            )
         ), row=row, col=col)
+
 
         # Add Error Bars (Mean ± SD)
         fig.add_trace(go.Scatter(
             x=group['Date'], y=[overall_mean] * len(group),
-            mode='lines', line=dict(color='dodgerblue', dash='solid'),
+            mode='lines', line=dict(color='yellowgreen', dash='solid'),
             name='Mean', showlegend=legend_flag, legendgroup=legend_group_mean
         ), row=row, col=col)
 
         fig.add_trace(go.Scatter(
             x=group['Date'], y=[overall_mean + (2*sd)] * len(group),
-            mode='lines', line=dict(color='green', dash='dash'),
+            mode='lines', line=dict(color='orange', dash='longdash'),
             name='+2 SD', showlegend=legend_flag, legendgroup=legend_group_sd
         ), row=row, col=col)
 
         fig.add_trace(go.Scatter(
             x=group['Date'], y=[overall_mean - (2*sd)] * len(group),
-            mode='lines', line=dict(color='green', dash='dash'),
+            mode='lines', line=dict(color='orange', dash='longdash'),
             name='-2 SD', showlegend=legend_flag, legendgroup=legend_group_sd
         ), row=row, col=col)
 
@@ -178,24 +191,37 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
         fig.add_trace(go.Scatter(
             x=group['Date'], y=[overall_mean - (3*sd)] * len(group),
             mode='lines', line=dict(color='red', dash='dash'),
-            name='-3 SD', showlegend=legend_flag, legendgroup=legend_group_sd
+            name='-3 SD', showlegend=legend_flag, legendgroup=legend_group_sd, 
+            hovertemplate="Mean ± 3 SD<br>"
         ), row=row, col=col)
 
         # --- Apply Westgard Alerts ---
         rule_alerts = check_westgard_rules(group[selected_analyte].tolist(), overall_mean, sd, rules_enabled)
         for i, rule in rule_alerts:
             fig.add_trace(go.Scatter(
-                x=[group['Date'].iloc[i]], y=[group[selected_analyte].iloc[i]],
-                mode='markers', marker=dict(color='crimson', size=9, symbol='x'),
-                name=f'Violation: {rule}', showlegend=False, legendgroup='Violation'
+                x=[group['Date'].iloc[i]],
+                y=[group[selected_analyte].iloc[i]],
+                mode='markers',
+                marker=dict(color='crimson', size=9, symbol='x'),
+                name=f'Violation: {rule}',
+                showlegend=False,
+                legendgroup='Violation',
+                customdata=np.array([[rule, group['Sample ID'].iloc[i], group['Date'].iloc[i].strftime('%Y-%m-%d'), group[selected_analyte].iloc[i]]]),
+                hovertemplate=(
+                    "Westgard Alert: %{customdata[0]}<br>" +
+                    "Sample ID: %{customdata[1]}<br>" +
+                    "Date: %{customdata[2]}<br>" +
+                    selected_analyte + ": %{customdata[3]:.2f}<extra></extra>"
+                )
             ), row=row, col=col)
+
 
         # After applying Grubbs' test and identifying outliers, gather the details
         outlier_details = []
         if grubbs_outliers.get("perform_grubbs"):
             outlier_alerts = grubbs_test(group[selected_analyte])
             outlier_indices = outlier_alerts["Outlier Indices"]
-            st.info(f"Grubbs' Test applied to {material} [{analyzer}]. No outliers identified.")
+            st.info(f"🟪 Grubbs' Test applied to {material} [{analyzer}]. No outliers identified.")
 
             for idx in outlier_indices:
                 fig.add_trace(go.Scatter(
@@ -204,9 +230,14 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
                     mode='markers',
                     marker=dict(color='darkorchid', size=10, symbol='square'),
                     name='Grubbs` Outlier',
-                    showlegend=legend_flag, legendgroup=legend_group_outlier, 
+                    showlegend=legend_flag, legendgroup=legend_group_outlier,
+                    customdata=np.stack((group['Sample ID'], group['Date'].dt.strftime('%Y-%m-%d'), group[selected_analyte]), axis=-1),
                     hovertemplate=(
-                        '%{x}<br>' + '{y}'),
+                        "Grubbs' Outlier<br>" +
+                        "Sample ID: %{customdata[0]}<br>" +
+                        "Date: %{customdata[1]}<br>" +
+                        selected_analyte + ": %{customdata[2]:.2f}<extra></extra>"
+                    ),
                 ), row=row, col=col)
 
             if outlier_indices:
@@ -235,7 +266,7 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
         st.info("No data available for plotting.")
 
 
-    # -- Imprecision statistics for all --
+    # --- Sidebar Navigation ---# Initialize analyzer_means to store means per analyte-material combination
     analyzer_means = {}
 
     for analyte in df.columns[7:]:
@@ -284,42 +315,68 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
 
     # -- Inter-analyser differences --
     analyser_comparison = []
+    differences = []  # Initialize the 'differences' list
+
     for (analyte, material), means_dict in analyzer_means.items():
         analyzers = list(means_dict.keys())
         if len(analyzers) < 2:
             continue
 
-        mean_values = [means_dict[a] for a in analyzers]
-        ia_mean = np.mean(mean_values)
-        ia_sd = np.std(mean_values, ddof=1)
-        ia_cv = (ia_sd / ia_mean) * 100 if ia_mean != 0 else np.nan
+        # Perform F-test (ANOVA) for differences between analyzers
+        analyzer_values = [qc_df[(qc_df['Material'] == material) & (qc_df['Analyser'] == analyzer)][analyte] for analyzer in analyzers]
+        analyzer_values = [
+            qc_df[(qc_df['Material'] == material) & (qc_df['Analyser'] == analyzer)][analyte].dropna()
+            for analyzer in analyzers
+        ]
 
-        analyser_comparison.append({
-            'Analyte': analyte,
-            'Material': material,
-            'Inter-Analyser Mean': round(ia_mean, 2),
-            'Inter-Analyser SD': round(ia_sd, 2),
-            'Inter-Analyser CV (%)': round(ia_cv, 2)
-        })
+        # Only include groups with at least two data points
+        analyzer_values = [vals for vals in analyzer_values if len(vals) >= 2]
 
-    differences = []
-    for (analyte, material), means_dict in analyzer_means.items():
-        analyzers = list(means_dict.keys())
+        if len(analyzer_values) >= 2:
+            f_statistic, p_value = stats.f_oneway(*analyzer_values)
+        else:
+            f_statistic, p_value = np.nan, np.nan
+
+        # Calculate the percentage differences between analyzers
         diffs = []
-
         for a1, a2 in combinations(analyzers, 2):
             m1, m2 = means_dict[a1], means_dict[a2]
             if m1 and m2:
                 pct_diff = abs(m1 - m2) / ((m1 + m2) / 2) * 100
                 diffs.append(pct_diff)
 
-        if diffs:
-            differences.append({
-                'Analyte': analyte,
-                'Material': material,
-                'Mean % Difference Between Analysers': round(np.mean(diffs), 2)
-            })
+        # Calculate overall mean for this analyte-material pair
+        mean_values = [means_dict[a] for a in analyzers]
+        ia_mean = np.mean(mean_values)
+        ia_sd = np.std(mean_values, ddof=1)
+        ia_cv = (ia_sd / ia_mean) * 100 if ia_mean != 0 else np.nan
+        # Calculate mean intra-analyser bias
+        ia_biases = [
+            abs(((means_dict[analyzer] - ia_mean) / ia_mean) * 100) for analyzer in analyzers
+        ]
+        mean_ia_bias = round(np.mean(ia_biases), 2)
 
+
+        analyser_comparison.append({
+            'Analyte': analyte,
+            'Material': material,
+            'Inter-Analyser Mean': round(ia_mean, 2),
+            'Inter-Analyser SD': round(ia_sd, 2),
+            'Inter-Analyser CV (%)': round(ia_cv, 2), 
+            # 'Inter-Analyser Bias (%)': round((ia_mean - means_dict[analyzers[0]]) / means_dict[analyzers[0]] * 100, 2), 
+            'Mean % Difference Between Analysers': round(mean_ia_bias, 2)
+            # 'F-statistic': round(f_statistic, 2),  # Indicating if the difference is statistically significant
+            # 'P-value': f"{p_value:.4e}" if not np.isnan(p_value) else np.nan  # Format p-value in scientific notation
+        })
+
+        # Save the percentage differences between analyzers
+        differences.append({
+            'Analyte': analyte,
+            'Material': material,
+            'Mean % Difference Between Analysers': round(np.mean(diffs), 2)
+        })
+
+    # Prepare final DataFrame for display
     stats_df = pd.DataFrame(results)
     diff_df = pd.DataFrame(differences)
 
@@ -327,11 +384,11 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
         stats_df[stats_df['Test'] == 'Intra_Well_Imprecision'],
         stats_df[stats_df['Test'] == 'Intra_Batch_Imprecision'],
         stats_df[stats_df['Test'] == 'Inter_Batch_Imprecision'],
-        diff_df,
         analyser_comparison,
         filtered_data, 
         outlier_indices 
     )
+
 
 # --- File Upload ---
 with st.expander("📤 Upload Your CSV File", expanded=True):
@@ -369,22 +426,22 @@ if uploaded_file:
         with st.expander("⚙️ Settings: Westgard Rules & Outlier Detection", expanded=True):
 
             
-            tab1, tab2 = st.tabs(["Westgard Rules", "Perform Grubbs` Test"])
+            tab1, tab2 = st.tabs(["❌ Westgard Rules", "🟪 Perform Grubbs` Test"])
 
             with tab1:
                 col1, col2 = st.columns(2)
                 with col1:
-                    rule_1_2s = st.checkbox("1-2s (warning)", value=True)
-                    rule_2_2s = st.checkbox("2-2s", value=False)
-                    rule_4_1s = st.checkbox("4-1s", value=False)
-                    rule_7T = st.checkbox("7T (trend)", value=False)
+                    rule_1_2s = st.checkbox("❌ 1-2s (warning)", value=True)
+                    rule_2_2s = st.checkbox("❌ 2-2s", value=False)
+                    rule_4_1s = st.checkbox("❌ 4-1s", value=False)
+                    rule_7T = st.checkbox("❌ 7T (trend)", value=False)
                 with col2:
-                    rule_1_3s = st.checkbox("1-3s", value=False)
-                    rule_R_4s = st.checkbox("R-4s", value=False)
-                    rule_10x = st.checkbox("10x", value=False)
-                    rule_8x = st.checkbox("8x", value=False)
+                    rule_1_3s = st.checkbox("❌ 1-3s", value=False)
+                    rule_R_4s = st.checkbox("❌ R-4s", value=False)
+                    rule_10x = st.checkbox("❌ 10x", value=False)
+                    rule_8x = st.checkbox("❌8x", value=False)
             with tab2:
-                perform_grubbs = st.checkbox("🔍 Perform Grubbs' test to identify outliers", value=False)
+                perform_grubbs = st.checkbox("🟪 Perform Grubbs' test to identify outliers", value=False)
                 exclude_grubbs = False
                 if perform_grubbs:
                     exclude_grubbs = st.checkbox("🚫 Exclude outliers from calculations", value=False)
@@ -408,7 +465,7 @@ if uploaded_file:
       
         # Analyze the filtered data
         with st.spinner("Analyzing..."):
-            intra_well_df, intra_batch_df, inter_batch_df, diff_df, analyser_comparison, filtered_data, outlier_indices = precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers)
+            intra_well_df, intra_batch_df, inter_batch_df, analyser_comparison, filtered_data, outlier_indices = precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
         # --- Results Output  ---
@@ -417,24 +474,24 @@ if uploaded_file:
 
             with tab1:
                 st.dataframe(intra_well_df)
-                st.download_button("⬇ Download Intra-Well", intra_well_df.to_csv(index=False), f"intra_well_results_{timestamp}.csv")
+                # st.download_button("⬇ Download Intra-Well", intra_well_df.to_csv(index=False), f"intra_well_results_{timestamp}.csv")
 
             with tab2:
                 st.dataframe(intra_batch_df)
-                st.download_button("⬇ Download Intra-Batch", intra_batch_df.to_csv(index=False), f"intra_batch_results_{timestamp}.csv")
+                # st.download_button("⬇ Download Intra-Batch", intra_batch_df.to_csv(index=False), f"intra_batch_results_{timestamp}.csv")
 
             with tab3:
                 st.dataframe(inter_batch_df)
-                st.download_button("⬇ Download Inter-Batch", inter_batch_df.to_csv(index=False), f"inter_batch_results_{timestamp}.csv")
+                # st.download_button("⬇ Download Inter-Batch", inter_batch_df.to_csv(index=False), f"inter_batch_results_{timestamp}.csv")
 
-            st.subheader("📈 % Difference Summary")
-            st.dataframe(diff_df)
-            st.download_button("⬇ Download Differences", diff_df.to_csv(index=False), f"differences_{timestamp}.csv")
+            # st.subheader("📈 % Difference Summary")
+            # st.dataframe(diff_df)
+            # st.download_button("⬇ Download Differences", diff_df.to_csv(index=False), f"differences_{timestamp}.csv")
 
             st.subheader("📏 Inter-Analyser Summary Statistics")
             inter_analyser_df = pd.DataFrame(analyser_comparison)
             st.dataframe(inter_analyser_df)
-            st.download_button("⬇ Download Inter-Analyser Stats", inter_analyser_df.to_csv(index=False), f"inter_analyser_stats_{timestamp}.csv")
+            # st.download_button("⬇ Download Inter-Analyser Stats", inter_analyser_df.to_csv(index=False), f"inter_analyser_stats_{timestamp}.csv")
 
 # --- Optional Reference Section ---
 with st.expander("📚 References"):

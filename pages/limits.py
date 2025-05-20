@@ -109,32 +109,53 @@ def calculate_lob(df):
 def calculate_lod_loq(df):
     # --- Identify analyte columns ---
     ignore_cols = ['Date', 'Analyser', 'Material', 'Sample ID']
-    analyte_columns =  [df.columns[i] for i in range(4, len(df.columns), 3)]  # Adjusted to select every third column starting from index 4
+    analyte_columns = [df.columns[i] for i in range(4, len(df.columns), 3)]
+
     # --- Filter low concentration data ---
     low_data = df[df['Sample ID'].str.lower().str.contains('low')]
 
     results = {
         'Analyte': [],
         'Low SD': [],
+        'Slope': [],
         'LOD': [],
         'LOQ': []
     }
 
     for analyte in analyte_columns:
-        low_vals = pd.to_numeric(low_data[analyte], errors='coerce').dropna()
-
-        if low_vals.empty:
+        # Attempt to find associated standard concentration column
+        conc_col = f'{analyte}'
+        if conc_col not in df.columns:
+            st.warning(f"⚠️ No matching concentration column found for {analyte}. Expected column: '{conc_col}'")
             continue
 
-        low_sd = round(low_vals.std(), 5)
+        try:
+            low_vals = pd.to_numeric(low_data[analyte], errors='coerce')
+            conc_vals = pd.to_numeric(low_data[conc_col], errors='coerce')
+            valid = low_vals.notna() & conc_vals.notna()
 
-        lod = round(1.645 * low_sd, 5)  # LOD calculation based on LOB + 1.645 * SD
-        loq = round(10 * low_sd, 5)
+            if valid.sum() < 2:
+                continue
 
-        results['Analyte'].append(analyte)
-        results['Low SD'].append(low_sd)
-        results['LOD'].append(lod)
-        results['LOQ'].append(loq)
+            # --- Calculate SD and Slope ---
+            low_sd = round(low_vals[valid].std(), 5)
+            slope = round(((low_vals[valid].cov(conc_vals[valid])) / conc_vals[valid].var()), 5)
+
+            if slope == 0:
+                st.warning(f"⚠️ Slope is 0 for {analyte}. Cannot compute LOD.")
+                continue
+
+            lod = round((3.3 * low_sd) / slope, 5)
+            loq = round(10 * low_sd, 5)
+
+            results['Analyte'].append(analyte)
+            results['Low SD'].append(low_sd)
+            results['Slope'].append(slope)
+            results['LOD'].append(lod)
+            results['LOQ'].append(loq)
+
+        except Exception as e:
+            st.error(f"Error processing {analyte}: {e}")
 
     result_df = pd.DataFrame(results)
     st.subheader("📊 Limit of Detection (LOD) & Limit of Quantification (LOQ) Summary")

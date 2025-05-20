@@ -33,11 +33,20 @@ with st.expander("📘 What is Imprecision Analysis?", expanded=True):
                 
     \n ****What types of imprecision are we interested in?****
     - **Intra-well imprecision**: Variation in repeated measurements within a single well or sample.
-    - **Intra-batch imprecision**: Variation in repeated measurements within a single bathch.
+    - **Intra-batch imprecision**: Variation in repeated measurements within a single batch.
     - **Inter-batch imprecision**: Variation in measurements of the same sample across different batches run across days.
                 
-    \n From this module, you can visualise and evaluate your data, applying Westgard rules and performing a Grubbs' test to identify statistically significant outliers. For more information on **Grubbs' Test**, please navigate to the `Outlier` page.
-    """)
+    \n As a general rule-of-thumb, if the nominal bias between instruments is smaller than the inter-analyser CV (%), and the p-value is not significant (i.e., > 0.05), then there is no strong evidence that the instruments differ in a meaningful or consistent way. Inter-analyser %CV you calculate is based on the standard deviation of mean values across analyzers for a given analyte-material pair. The associated p-value is derived from a one-way ANOVA, which tests whether the means from different analyzers are significantly different from each other. 
+
+    \n <small> ✅ Low bias + High p-value: No significant difference — acceptable agreement.</small>
+
+    \n <small> ⚠️ Low bias + Low p-value: Statistically significant difference, but it may not be clinically relevant — further investigation may be warranted.</small>
+
+    \n <small> ❌ High bias + Low p-value: Significant and possibly clinically relevant difference — calibration or methodological review required.</small>
+
+    \n From this module, you can visualize and evaluate your data, applying Westgard rules and performing a Grubbs' test to identify statistically significant outliers.
+
+    """, unsafe_allow_html=True)
 # --- How --- 
 with st.expander("📘 Imprecision Metrics Explained:", expanded=False):
     st.markdown("### 📐 Imprecision Metrics Explained")
@@ -51,6 +60,29 @@ with st.expander("📘 Imprecision Metrics Explained:", expanded=False):
     st.latex(r'''\text{Bias (\%)} = \left( \frac{\bar{x} - \mu}{\mu} \right) \times 100''')
 
     st.markdown("**🔹 Grubb's test**, also known as Extreme Studentized Deviate (ESD) test, is used to identify outliers which are statistically significant from a univariate data set that follows an approximately normal distribution.")
+
+# with st.expander("ℹ️ What is Grubbs' Test?"):
+#     st.markdown("""
+#     **Grubbs' Test** is a statistical test used to detect outliers in a univariate dataset.  
+#     It tests whether the extreme value in the dataset is significantly different from the rest of the data.
+    
+#     The Grubbs' test statistic is defined as:
+#     """)
+    
+#     st.latex(r"""
+#     G = \frac{\max{\left| x_i - \bar{x} \right|}}{s}
+#     """)
+    
+#     st.markdown("""
+#     Where:
+#     - \( x_i \) is an individual observation  
+#     - \( \bar{x} \) is the sample mean  
+#     - \( s \) is the sample standard deviation  
+
+#     The value of \( G \) is compared to a critical value from the Grubbs' distribution table.  
+#     If \( G \) exceeds the critical value, the point is considered a significant outlier.
+#     """)
+
 
 # --- Instructions ---
 with st.expander("📘 Instructions:", expanded=False): 
@@ -112,7 +144,7 @@ with st.expander("ℹ️ What are the Westgard Rules?"):
     \n Each rule helps identify potential issues in assay performance. You can toggle which rules are applied using the sidebar checkboxes.
     """)
 
-def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
+def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, exclude_westgard=False):
     results = []
     outlier_indices = []
     filtered_data = df.copy()  # default if not computed
@@ -140,6 +172,7 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
     # --- Plot All Data Points with Error Bars (Including Westgard Alerts) ---
     for (material, analyzer), group in qc_df.groupby(['Material', 'Analyser']):
         group = group.copy()
+        group = group[group['Test'] != "Intra_Well_Imprecision"]  # <-- Add this line
         group['Date'] = pd.to_datetime(group['Date'], errors='coerce', dayfirst=True)
         group = group.dropna(subset=['Date', selected_analyte, 'Analyser', 'Material'])
 
@@ -207,8 +240,12 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
         ), row=row, col=col)
 
         # --- Apply Westgard Alerts ---
+        # --- Apply Westgard Alerts and Optionally Exclude ---
+        westgard_violations = []
         rule_alerts = check_westgard_rules(group[selected_analyte].tolist(), overall_mean, sd, rules_enabled)
+
         for i, rule in rule_alerts:
+            westgard_violations.append(i)
             fig.add_trace(go.Scatter(
                 x=[group['Date'].iloc[i]],
                 y=[group[selected_analyte].iloc[i]],
@@ -225,6 +262,10 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
                     selected_analyte + ": %{customdata[3]:.2f}<extra></extra>"
                 )
             ), row=row, col=col)
+
+        if exclude_westgard and westgard_violations:
+            group = group.drop(index=group.index[westgard_violations])
+            st.warning(f"{len(westgard_violations)} Westgard rule violations excluded for {material} [{analyzer}]")
 
 
         # After applying Grubbs' test and identifying outliers, gather the details
@@ -278,6 +319,8 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
 
 
     # --- Sidebar Navigation ---# Initialize analyzer_means to store means per analyte-material combination
+    # --- Sidebar Navigation ---
+    # Initialize analyzer_means to store means per analyte-material combination
     analyzer_means = {}
 
     for analyte in df.columns[7:]:
@@ -289,7 +332,20 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
             if group.empty or len(group) < 2:
                 continue
 
-            # --- Apply Grubbs' test and optionally exclude outliers ---
+            # ✅ Calculate initial mean and SD BEFORE exclusion
+            initial_mean = group[analyte].mean()
+            initial_sd = group[analyte].std()
+
+            # ✅ Apply Westgard Exclusion FIRST (before Grubbs')
+            if rules_enabled and exclude_westgard:
+                westgard_violations = [i for i, _ in check_westgard_rules(group[analyte].tolist(), initial_mean, initial_sd, rules_enabled)]
+                if westgard_violations:
+                    group = group.drop(index=group.index[westgard_violations])
+
+            if group.empty or len(group) < 2:
+                continue
+
+            # ✅ Apply Grubbs' test and optionally exclude outliers
             if grubbs_outliers.get("perform_grubbs"):
                 outlier_alerts = grubbs_test(group[analyte])
                 outlier_indices = outlier_alerts["Outlier Indices"]
@@ -300,7 +356,7 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
             if group.empty or len(group) < 2:
                 continue  # Skip if not enough data after outlier removal
 
-            # --- Stats Calculation ---
+            # ✅ Recalculate mean and SD after exclusions
             overall_mean = round(group[analyte].mean(), 2)
             sd = round(group[analyte].std(ddof=1), 2)
             nobs = group[analyte].count()
@@ -323,24 +379,20 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
                 key = (analyte, material)
                 analyzer_means.setdefault(key, {})[analyzer] = overall_mean
 
-
     # -- Inter-analyser differences --
     analyser_comparison = []
-    differences = []  # Initialize the 'differences' list
+    differences = []
 
     for (analyte, material), means_dict in analyzer_means.items():
         analyzers = list(means_dict.keys())
         if len(analyzers) < 2:
             continue
 
-        # Perform F-test (ANOVA) for differences between analyzers
-        analyzer_values = [qc_df[(qc_df['Material'] == material) & (qc_df['Analyser'] == analyzer)][analyte] for analyzer in analyzers]
         analyzer_values = [
             qc_df[(qc_df['Material'] == material) & (qc_df['Analyser'] == analyzer)][analyte].dropna()
             for analyzer in analyzers
         ]
 
-        # Only include groups with at least two data points
         analyzer_values = [vals for vals in analyzer_values if len(vals) >= 2]
 
         if len(analyzer_values) >= 2:
@@ -348,7 +400,6 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
         else:
             f_statistic, p_value = np.nan, np.nan
 
-        # Calculate the percentage differences between analyzers
         diffs = []
         for a1, a2 in combinations(analyzers, 2):
             m1, m2 = means_dict[a1], means_dict[a2]
@@ -356,17 +407,12 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
                 pct_diff = abs(m1 - m2) / ((m1 + m2) / 2) * 100
                 diffs.append(pct_diff)
 
-        # Calculate overall mean for this analyte-material pair
         mean_values = [means_dict[a] for a in analyzers]
         ia_mean = np.mean(mean_values)
         ia_sd = np.std(mean_values, ddof=1)
         ia_cv = (ia_sd / ia_mean) * 100 if ia_mean != 0 else np.nan
-        # Calculate mean intra-analyser bias
-        ia_biases = [
-            abs(((means_dict[analyzer] - ia_mean) / ia_mean) * 100) for analyzer in analyzers
-        ]
+        ia_biases = [abs(((means_dict[analyzer] - ia_mean) / ia_mean) * 100) for analyzer in analyzers]
         mean_ia_bias = round(np.mean(ia_biases), 2)
-
 
         analyser_comparison.append({
             'Analyte': analyte,
@@ -374,20 +420,17 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers):
             'Inter-Analyser Mean': round(ia_mean, 2),
             'Inter-Analyser SD': round(ia_sd, 2),
             'Inter-Analyser CV (%)': round(ia_cv, 2), 
-            # 'Inter-Analyser Bias (%)': round((ia_mean - means_dict[analyzers[0]]) / means_dict[analyzers[0]] * 100, 2), 
-            'Mean % Difference Between Analysers': round(mean_ia_bias, 2)
-            # 'F-statistic': round(f_statistic, 2),  # Indicating if the difference is statistically significant
-            # 'P-value': f"{p_value:.4e}" if not np.isnan(p_value) else np.nan  # Format p-value in scientific notation
+            'Mean % Difference Between Analysers': round(mean_ia_bias, 2),
+            'F-statistic': round(f_statistic, 2),
+            'P-value': round(p_value, 2) if not np.isnan(p_value) else np.nan
         })
 
-        # Save the percentage differences between analyzers
         differences.append({
             'Analyte': analyte,
             'Material': material,
             'Mean % Difference Between Analysers': round(np.mean(diffs), 2)
         })
 
-    # Prepare final DataFrame for display
     stats_df = pd.DataFrame(results)
     diff_df = pd.DataFrame(differences)
 
@@ -440,7 +483,7 @@ if uploaded_file:
             tab1, tab2 = st.tabs(["❌ Westgard Rules", "🟪 Perform Grubbs` Test"])
 
             with tab1:
-                col1, col2 = st.columns(2)
+                col1, col2, col3 = st.columns(3)
                 with col1:
                     rule_1_2s = st.checkbox("❌ 1-2s (warning)", value=True)
                     rule_2_2s = st.checkbox("❌ 2-2s", value=False)
@@ -451,6 +494,9 @@ if uploaded_file:
                     rule_R_4s = st.checkbox("❌ R-4s", value=False)
                     rule_10x = st.checkbox("❌ 10x", value=False)
                     rule_8x = st.checkbox("❌8x", value=False)
+                with col3:
+                    exclude_westgard = st.checkbox("🚫 Exclude Westgard rule violations from calculations", value=False)
+                    st.markdown("**Note:** If you choose to exclude Westgard rule violations, the app will remove any data points that violate the selected rules before performing the analysis.")
             with tab2:
                 perform_grubbs = st.checkbox("🟪 Perform Grubbs' test to identify outliers", value=False)
                 exclude_grubbs = False

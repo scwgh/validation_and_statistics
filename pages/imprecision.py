@@ -144,7 +144,7 @@ with st.expander("ℹ️ What are the Westgard Rules?"):
     \n Each rule helps identify potential issues in assay performance. You can toggle which rules are applied using the sidebar checkboxes.
     """)
 
-def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, exclude_westgard=False):
+def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, exclude_westgard=False, units="μmol/L"):
     results = []
     outlier_indices = []
     filtered_data = df.copy()  # default if not computed
@@ -206,12 +206,15 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
             )
         ), row=row, col=col)
 
+        fig.update_xaxes(title_text="Date", row=row, col=col)
+        fig.update_yaxes(title_text=f"Concentration ({units})", row=row, col=col)
+
 
         # Add Error Bars (Mean ± SD)
         fig.add_trace(go.Scatter(
             x=group['Date'], y=[overall_mean] * len(group),
             mode='lines', line=dict(color='yellowgreen', dash='solid'),
-            name='Mean', showlegend=legend_flag, legendgroup=legend_group_mean
+            name=f'Mean ({units})', showlegend=legend_flag, legendgroup=legend_group_mean
         ), row=row, col=col)
 
         fig.add_trace(go.Scatter(
@@ -239,7 +242,6 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
             hovertemplate="Mean ± 3 SD<br>"
         ), row=row, col=col)
 
-        # --- Apply Westgard Alerts ---
         # --- Apply Westgard Alerts and Optionally Exclude ---
         westgard_violations = []
         rule_alerts = check_westgard_rules(group[selected_analyte].tolist(), overall_mean, sd, rules_enabled)
@@ -262,6 +264,7 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
                     selected_analyte + ": %{customdata[3]:.2f}<extra></extra>"
                 )
             ), row=row, col=col)
+        
 
         if exclude_westgard and westgard_violations:
             group = group.drop(index=group.index[westgard_violations])
@@ -306,6 +309,18 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
         row += 1 if col == 1 else 0
        
 
+    # if fig.data:
+    #     fig.update_layout(
+    #         height=400 * ((num_plots + 1) // 2),
+    #         title_text=f"{selected_analyte} - Inter-Batch Imprecision (All Analyzers)",
+    #         template='plotly_white',
+    #         margin=dict(t=50, l=30, r=30, b=30)
+    #     )
+    #     st.plotly_chart(fig, use_container_width=True)
+    # else:
+    #     st.info("No data available for plotting.")
+
+        
     if fig.data:
         fig.update_layout(
             height=400 * ((num_plots + 1) // 2),
@@ -313,14 +328,26 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
             template='plotly_white',
             margin=dict(t=50, l=30, r=30, b=30)
         )
+        
+        # Number of rows in your subplot grid
+        num_rows = (num_plots + 1) // 2
+
+        for r in range(1, num_rows + 1):
+            for c in range(1, 3):
+                fig.update_xaxes(
+                    showticklabels=True,      # Show x-axis labels on all plots
+                    tickangle=45,
+                    tickformat="%b-%y",   # Or any format you prefer
+                    row=r,
+                    col=c
+                )
+
+        
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("No data available for plotting.")
 
-
     # --- Sidebar Navigation ---# Initialize analyzer_means to store means per analyte-material combination
-    # --- Sidebar Navigation ---
-    # Initialize analyzer_means to store means per analyte-material combination
     analyzer_means = {}
 
     for analyte in df.columns[7:]:
@@ -369,7 +396,7 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
                 'n': nobs,
                 'Material': material,
                 'Analyser': analyzer,
-                'Mean': overall_mean,
+                f'Mean ({units})': overall_mean,
                 'SD': sd,
                 'CV (%)': cv,
                 'SEM': sem
@@ -417,7 +444,7 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
         analyser_comparison.append({
             'Analyte': analyte,
             'Material': material,
-            'Inter-Analyser Mean': round(ia_mean, 2),
+            f'Inter-Analyser Mean ({units})': round(ia_mean, 2),
             'Inter-Analyser SD': round(ia_sd, 2),
             'Inter-Analyser CV (%)': round(ia_cv, 2), 
             'Mean % Difference Between Analysers': round(mean_ia_bias, 2),
@@ -476,6 +503,11 @@ if uploaded_file:
         analyte_options = df.columns[7:]
         selected_analyte = st.selectbox("🔎 Select Analyte to View", analyte_options)
 
+        units = st.selectbox(
+            "Select Units",
+            options=["nmol/L", "μmol/L", "mmol/L", "mg/dL", "g/L", "ng/mL"], 
+            index=0
+        )
         # --- Westgard & Grubbs Controls Section (Below Analyte Dropdown) ---
         with st.expander("⚙️ Settings: Westgard Rules & Outlier Detection", expanded=True):
 
@@ -522,7 +554,7 @@ if uploaded_file:
       
         # Analyze the filtered data
         with st.spinner("Analyzing..."):
-            intra_well_df, intra_batch_df, inter_batch_df, analyser_comparison, filtered_data, outlier_indices = precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers)
+            intra_well_df, intra_batch_df, inter_batch_df, analyser_comparison, filtered_data, outlier_indices = precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, units=units)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
         # --- Results Output  ---

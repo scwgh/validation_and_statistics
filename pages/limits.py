@@ -19,7 +19,7 @@ with st.expander("📘 What are limits?", expanded=True):
     \n LOB and LOD are important to discriminate between the presence or absence of an analyte; whereas LOQ is important for clinical diagnosis and management. 
     \n **LOD**, or **Limit of Detection**, refers to the **lowest concentration of an analyte** that can be reliably distinguished from background noise or a blank signal—but not necessarily quantified with accuracy or precision.
     """)
-    st.latex(r"\text{LOD} = \text{LOB} + 1.645 \cdot \sigma_{\text{low concentration sample}}")
+    st.latex(r"\text{LOD} = \mu_{\text{blank}} + {\text{3SD}}")
 
     st.markdown("""**LOB**, or **Limit of Blank**, is the highest concentration of analyte that is likely to be found in a blank sample.
     """)
@@ -66,7 +66,7 @@ def upload_data():
 def calculate_lob(df):
     # --- Identify analyte columns ---
     ignore_cols = ['Date', 'Analyser', 'Material', 'Sample ID']
-    analyte_columns =  [df.columns[i] for i in range(4, len(df.columns), 3)] 
+    analyte_columns =  [df.columns[i] for i in range(2, len(df.columns), 3)] 
 
     # --- Filter blank data ---
     blank_data = df[df['Material'].str.lower() == 'blank']
@@ -107,66 +107,54 @@ def calculate_lob(df):
 
 # --- Calculation Logic for LOD & LOQ ---
 def calculate_lod_loq(df):
-    # --- Identify analyte columns ---
-    ignore_cols = ['Date', 'Analyser', 'Material', 'Sample ID']
-    analyte_columns = [df.columns[i] for i in range(4, len(df.columns), 3)]
+    # Adjusted analyte names to match the columns in your dataset
+    analyte_names = ['C10', 'C5', 'C5DC', 'C8', 'Met', 'Phe', 'Tyr', 'Xle', 'Leu', 'Suac']
 
-    # --- Filter low concentration data ---
-    low_data = df[df['Sample ID'].str.lower().str.contains('low')]
+    # Filter data for low concentration samples
+    low_data = df[df['Sample Name'].str.lower().str.contains('low', na=False)]
 
     results = {
         'Analyte': [],
         'Low SD': [],
-        'Slope': [],
         'LOD': [],
         'LOQ': []
     }
 
-    for analyte in analyte_columns:
-        # Attempt to find associated standard concentration column
-        conc_col = f'{analyte}'
-        if conc_col not in df.columns:
-            st.warning(f"⚠️ No matching concentration column found for {analyte}. Expected column: '{conc_col}'")
+    for analyte in analyte_names:
+        response_col = f'{analyte} Response'  # Assuming the column for the response is named like "<Analyte> Response"
+        if response_col not in df.columns:
+            st.warning(f"⚠️ Raw response column not found for {analyte}: '{response_col}'")
             continue
 
         try:
-            low_vals = pd.to_numeric(low_data[analyte], errors='coerce')
-            conc_vals = pd.to_numeric(low_data[conc_col], errors='coerce')
-            valid = low_vals.notna() & conc_vals.notna()
+            # Extract the response values for the low concentration samples
+            response_vals = pd.to_numeric(low_data[response_col], errors='coerce')
+            valid = response_vals.notna()
 
             if valid.sum() < 2:
+                st.warning(f"⚠️ Not enough valid data for {analyte}")
                 continue
 
-            # --- Calculate SD and Slope ---
-            low_sd = round(low_vals[valid].std(), 5)
-            slope = round(((low_vals[valid].cov(conc_vals[valid])) / conc_vals[valid].var()), 5)
+            # Calculate mean and standard deviation for the valid response values
+            mean_response = round(response_vals[valid].mean(), 5)
+            sd_response = round(response_vals[valid].std(), 5)
 
-            if slope == 0:
-                st.warning(f"⚠️ Slope is 0 for {analyte}. Cannot compute LOD.")
-                continue
-
-            lod = round((3.3 * low_sd) / slope, 5)
-            loq = round(10 * low_sd, 5)
+            # Calculate LOD and LOQ using the adjusted formulas
+            lod = round(mean_response + 3 * sd_response, 5)
+            loq = round(10 * sd_response, 5)
 
             results['Analyte'].append(analyte)
-            results['Low SD'].append(low_sd)
-            results['Slope'].append(slope)
+            results['Low SD'].append(sd_response)
             results['LOD'].append(lod)
             results['LOQ'].append(loq)
 
         except Exception as e:
             st.error(f"Error processing {analyte}: {e}")
 
+    # Display results in a DataFrame
     result_df = pd.DataFrame(results)
-    st.subheader("📊 Limit of Detection (LOD) & Limit of Quantification (LOQ) Summary")
+    st.subheader("📊 LOD and LOQ Summary")
     st.dataframe(result_df)
-
-    # st.download_button(
-    #     label="⬇️ Download LOD/LOQ Results as CSV",
-    #     data=result_df.to_csv(index=False),
-    #     file_name="lod_loq_results.csv",
-    #     mime="text/csv"
-    # )
 
 # --- Upload data ---
 df = upload_data()  # Ensure the file is uploaded before performing analysis

@@ -22,7 +22,7 @@ import kaleido
 
 # --- Streamlit Page Configuration ---
 st.set_page_config(
-    page_title="Validation and Statistical Analysis App - v. 1.03",
+    page_title="Validation and Statistical Analysis App - v. 1.04",
     page_icon=":computer:",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -175,8 +175,8 @@ st.markdown(
         <p style='text-align: center; font-size: 14px;'>
             &copy; 2025 Validation and Statistical Analysis App. All rights reserved. 
             <br><br>
-            <a href="https://github.com/your-repo" target="_blank" style='text-decoration: none; color: #4C9ED9;'>GitHub Repository</a> | 
-            <a href="mailto:sophie.ward@synnovis.co.il" style='text-decoration: none; color: #4C9ED9;'>Contact Support</a>
+            <a href="https://github.com/scwgh/validation_and_statistics" target="_blank" style='text-decoration: none; color: #4C9ED9;'>GitHub Repository</a> | 
+            <a href="mailto:validation.and.stats@gmail.com" style='text-decoration: none; color: #4C9ED9;'>Contact Support</a>
         </p>
     </footer>
     """, 

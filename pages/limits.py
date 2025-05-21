@@ -20,7 +20,7 @@ with st.expander("📘 What are limits?", expanded=True):
     \n **LOD**, or **Limit of Detection**, refers to the **lowest concentration of an analyte** that can be reliably distinguished from background noise or a blank signal—but not necessarily quantified with accuracy or precision.
     """)
     st.latex(r"\text{LOD} = \mu_{\text{blank}} + {\text{3SD}}")
-
+    st.markdown(""" The LOD for each analyte is estimated as the mean response of the blank replicates plus three times the standard deviation of the blank replicates.""")
     st.markdown("""**LOB**, or **Limit of Blank**, is the highest concentration of analyte that is likely to be found in a blank sample.
     """)
     st.latex(r"\text{LOB} = \mu_{\text{blank}} + 1.645 \cdot \sigma_{\text{blank}}")

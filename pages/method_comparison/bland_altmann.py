@@ -23,7 +23,9 @@ def run():
         st.markdown("""
         This analysis is used to evaluate if two analyzers provide results that are **consistently close** enough for clinical or research purposes.
         \n The reference line for the mean gives an indication of the bias between the two methods. 
-                    \n The limits of agreement help assess whether the differences between two methods are practically significant. If the differences follow an approximately normal distribution, around 95% of the differences should fall within these limits. If the limits of agreement are considered clinically insignificant, the two measurement methods may be regarded as equivalent for practical purposes. However, especially with small sample sizes, these limits may not be reliable. In such cases, the confidence limits for the limits of agreement can provide an indication of the uncertainty. While these confidence limits are only approximate, they should be sufficient for most applications.""")
+        \n The limits of agreement help assess whether the differences between two methods are practically significant. If the differences follow an approximately normal distribution, around 95% of the differences should fall within these limits. If the limits of agreement are considered clinically insignificant, the two measurement methods may be regarded as equivalent for practical purposes. However, especially with small sample sizes, these limits may not be reliable. In such cases, the confidence limits for the limits of agreement can provide an indication of the uncertainty. While these confidence limits are only approximate, they should be sufficient for most applications.
+                    \n Any results which are identified as outliers will be marked with a purple square (🟪). To exclude outliers from analysis for a given analyte, select the checkbox at the top of the page.""")
+
 
     with st.expander("📘 Instructions:"):
         st.markdown("""
@@ -72,23 +74,28 @@ def run():
         # Identify outliers
         is_outlier = (diffs < lower_bound) | (diffs > upper_bound)
 
-        # Display a checkbox to exclude outliers
-        exclude_outliers = st.checkbox("Exclude outliers from analysis", value=True)
+        # Notify user if no outliers are present
+        if not is_outlier.any():
+            st.info("✅ No outliers detected.")
+        else:
+            # Display a checkbox to exclude outliers
+            st.error("⚠️ Outliers detected.")
+            exclude_outliers = st.checkbox("Exclude outliers from analysis", value=False)
 
-        if exclude_outliers:
-            # Exclude outliers if checkbox is checked
-            valid_indices = diffs[(diffs >= lower_bound) & (diffs <= upper_bound)].index
-            vals1, vals2 = vals1.loc[valid_indices], vals2.loc[valid_indices]
+            if exclude_outliers:
+                # Exclude outliers if checkbox is checked
+                valid_indices = diffs[(diffs >= lower_bound) & (diffs <= upper_bound)].index
+                vals1, vals2 = vals1.loc[valid_indices], vals2.loc[valid_indices]
 
-            # Show warning and outlier information
-            outliers = diffs[(diffs < lower_bound) | (diffs > upper_bound)]
-            outlier_ids = df1.loc[outliers.index, 'Sample ID'].tolist()
-            if outlier_ids:
-                st.warning(f"⚠️ Outliers excluded: Sample IDs: {', '.join(map(str, outlier_ids))}")
+                # Show warning and outlier information
+                outliers = diffs[is_outlier]
+                outlier_ids = df1.loc[outliers.index, 'Sample ID'].tolist()
+                if outlier_ids:
+                    st.warning(f"⚠️ Outliers excluded: Sample IDs: {', '.join(map(str, outlier_ids))}")
+
         # else:
-        #     # If not excluding outliers, use all data
         #     valid_indices = diffs.index
-        #     st.info("Outliers are included in the analysis.")
+        #     st.info("No outliers excluded from analysis.")
 
         # Re-calculate statistics (mean difference, LoA, p-value)
         diffs = vals1 - vals2
@@ -100,26 +107,29 @@ def run():
         loa_lower = mean_diff - 1.96 * std_diff
         n = len(diffs)
 
-        # Paired t-test (without outliers if checkbox is checked)
-        t_stat, p_val = stats.ttest_rel(vals1, vals2)
+        # Calculate confidence intervals for LoA
+        se = std_diff / np.sqrt(n)
+        ci_range = 1.96 * se
+        ci_upper_upper = loa_upper + ci_range
+        ci_upper_lower = loa_upper - ci_range
+        ci_lower_upper = loa_lower + ci_range
+        ci_lower_lower = loa_lower - ci_range
 
-        
+
+        # Paired t-test (without outliers if checkbox is checked)
+        t_stat, p_val = stats.ttest_rel(vals1, vals2)       
 
         # --- Plot: Numerical Differences ---
         fig1 = go.Figure()
-
-        # Add scatter plot for differences (for non-outliers)
         fig1.add_trace(go.Scatter(
-            x=means[~is_outlier],  # Non-outlier points
+            x=means[~is_outlier],  
             y=diffs[~is_outlier],
             mode='markers',
             marker=dict(color='dimgray', symbol='circle'),
             name='Sample',
             hovertemplate='<b>Sample ID: %{text}</b><br>Mean: %{x:.3f}<br>Diff: %{y:.3f}<extra></extra>',
-            text=df1['Sample ID'][:min_len][~is_outlier]  # Adding Sample ID as a text attribute
+            text=df1['Sample ID'][:min_len][~is_outlier] 
         ))
-
-        # Add scatter plot for outliers
         fig1.add_trace(go.Scatter(
             x=means[is_outlier],  # Outlier points
             y=diffs[is_outlier],
@@ -127,25 +137,70 @@ def run():
             marker=dict(color='deeppink', symbol='square'),
             name='Outlier',
             hovertemplate='<b>Sample ID: %{text}</b><br>Mean: %{x:.3f}<br>Diff: %{y:.3f}<extra></extra>',
-            text=df1['Sample ID'][:min_len][is_outlier]  # Adding Sample ID as a text attribute
+            text=df1['Sample ID'][:min_len][is_outlier]  
         ))
 
-        # Shading for Limits of Agreement (LoA)
-        fig1.add_trace(go.Scatter(
-            x=np.concatenate([means, means[::-1]]), 
-            y=np.concatenate([loa_upper * np.ones_like(means), loa_lower * np.ones_like(means[::-1])]),
-            fill='toself',
-            fillcolor='rgba(144, 238, 144, 0.3)',  # Pale green for LoA
-            line=dict(color='rgba(255,255,255,0)'),
-            name="Limits of Agreement (LoA)"
-        ))
+        # # Shading: Confidence Interval around Upper LoA (light blue)
+        # fig1.add_trace(go.Scatter(
+        #     x=np.concatenate([means, means[::-1]]),
+        #     y=np.concatenate([np.full_like(means, ci_upper_upper), np.full_like(means, ci_upper_lower)[::-1]]),
+        #     fill='toself',
+        #     fillcolor='rgba(173, 216, 230, 0.3)',  # Light blue
+        #     line=dict(color='rgba(255,255,255,0)'),
+        #     hoverinfo='skip',
+        #     showlegend=True,
+        #     name='CI: Upper LoA'
+        # ))
+
+        # # Shading: Confidence Interval around Lower LoA (light blue)
+        # fig1.add_trace(go.Scatter(
+        #     x=np.concatenate([means, means[::-1]]),
+        #     y=np.concatenate([np.full_like(means, ci_lower_upper), np.full_like(means, ci_lower_lower)[::-1]]),
+        #     fill='toself',
+        #     fillcolor='rgba(173, 216, 230, 0.3)',  # Light blue
+        #     line=dict(color='rgba(255,255,255,0)'),
+        #     hoverinfo='skip',
+        #     showlegend=True,
+        #     name='CI: Lower LoA'
+        # ))
+
+        # # Shading: Overall Limits of Agreement (pale green)
+        # fig1.add_trace(go.Scatter(
+        #     x=np.concatenate([means, means[::-1]]),
+        #     y=np.concatenate([np.full_like(means, loa_upper), np.full_like(means, loa_lower)[::-1]]),
+        #     fill='toself',
+        #     fillcolor='rgba(144, 238, 144, 0.3)',  # Pale green
+        #     line=dict(color='rgba(255,255,255,0)'),
+        #     hoverinfo='skip',
+        #     showlegend=True,
+        #     name='Limits of Agreement'
+        # ))
 
         # Adding reference lines for Mean Diff and LoA
-        fig1.add_hline(y=mean_diff, line_color='blue', annotation_text=f"Mean Diff: {mean_diff:.3f}", annotation_position="top left")
-        fig1.add_hline(y=loa_upper, line_color='blue', line_dash='dash', annotation_text=f"+1.96 SD: {loa_upper:.3f}")
-        fig1.add_hline(y=loa_lower, line_color='blue', line_dash='dash', annotation_text=f"-1.96 SD: {loa_lower:.3f}")
+        fig1.add_trace(go.Scatter(
+            x=[means.min(), means.max()],
+            y=[mean_diff, mean_diff],
+            mode='lines',
+            line=dict(color='darkslateblue', dash='solid'),
+            name=f"Mean Diff: {mean_diff:.2f}"
+        ))
 
-        # Update layout for plot
+        fig1.add_trace(go.Scatter(
+            x=[means.min(), means.max()],
+            y=[loa_upper, loa_upper],
+            mode='lines',
+            line=dict(color='slateblue', dash='dash'),
+            name=f"+1.96 SD = {loa_upper:.2f}"
+        ))
+
+        fig1.add_trace(go.Scatter(
+            x=[means.min(), means.max()],
+            y=[loa_lower, loa_lower],
+            mode='lines',
+            line=dict(color='slateblue', dash='dash'),
+            name=f"-1.96 SD = {loa_lower:.2f}"
+        ))
+
         fig1.update_layout(
             title=f"{selected_analyte} - Bland-Altmann Plot (Numerical Difference)",
             xaxis_title="Mean of Two Analyzers",
@@ -157,6 +212,23 @@ def run():
         st.plotly_chart(fig1, use_container_width=True)
 
         # --- Plot: Percentage Differences ---
+        # Calculate mean and standard deviation for the percentage differences
+        mean_percent_diff = np.mean(percent_diffs)
+        std_percent_diff = np.std(percent_diffs, ddof=1)
+
+        # Upper and lower limits of agreement for percentage differences
+        loa_upper_percent_diff = mean_percent_diff + 1.96 * std_percent_diff
+        loa_lower_percent_diff = mean_percent_diff - 1.96 * std_percent_diff
+
+        # Confidence intervals for % LoA
+        se_percent = std_percent_diff / np.sqrt(n)
+        ci_range_percent = 1.96 * se_percent
+        ci_upper_upper_pct = loa_upper_percent_diff + ci_range_percent
+        ci_upper_lower_pct = loa_upper_percent_diff - ci_range_percent
+        ci_lower_upper_pct = loa_lower_percent_diff + ci_range_percent
+        ci_lower_lower_pct = loa_lower_percent_diff - ci_range_percent
+
+        
         fig2 = go.Figure()
 
         # Add scatter plot for percentage differences (for non-outliers)
@@ -164,7 +236,7 @@ def run():
             x=means[~is_outlier],  # Non-outlier points
             y=percent_diffs[~is_outlier],
             mode='markers',
-            marker=dict(color='dimgray', symbol='square'),
+            marker=dict(color='dimgray', symbol='circle'),
             name='Sample',
             hovertemplate='<b>Sample ID: %{text}</b><br>Mean: %{x:.3f}<br>% Diff: %{y:.3f}<extra></extra>',
             text=df1['Sample ID'][:min_len][~is_outlier]  # Adding Sample ID as a text attribute
@@ -181,29 +253,33 @@ def run():
             text=df1['Sample ID'][:min_len][is_outlier]  # Adding Sample ID as a text attribute
         ))
 
-        # Calculate mean and standard deviation for the percentage differences
-        mean_percent_diff = np.mean(percent_diffs)
-        std_percent_diff = np.std(percent_diffs, ddof=1)
-
-        # Upper and lower limits of agreement for percentage differences
-        loa_upper_percent_diff = mean_percent_diff + 1.96 * std_percent_diff
-        loa_lower_percent_diff = mean_percent_diff - 1.96 * std_percent_diff
-
-        # Shading for Limits of Agreement (LoA)
+        # Mean Percent Difference Line
         fig2.add_trace(go.Scatter(
-            x=np.concatenate([means, means[::-1]]),  # Concatenate means for shaded area
-            y=np.concatenate([loa_upper_percent_diff * np.ones_like(means), loa_lower_percent_diff * np.ones_like(means[::-1])]),
-            fill='toself',
-            fillcolor='rgba(144, 238, 144, 0.3)',  # Pale green for LoA shading
-            line=dict(color='rgba(255,255,255,0)'),
-            name="Limits of Agreement (LoA)"
+            x=[means.min(), means.max()],
+            y=[mean_percent_diff, mean_percent_diff],
+            mode='lines',
+            line=dict(color='darkslateblue'),
+            name=f"Mean % Diff: {mean_percent_diff:.2f}%"
         ))
 
-        # Add reference lines for Mean Percent Diff and LoA
-        fig2.add_hline(y=0, line_color='grey', annotation_text="Zero Diff", annotation_position="bottom left")
-        fig2.add_hline(y=mean_percent_diff, line_color='blue', annotation_text=f"Mean % Diff: {mean_percent_diff:.3f}", annotation_position="top left")
-        fig2.add_hline(y=loa_upper_percent_diff, line_color='blue', line_dash='dash', annotation_text=f"+1.96 SD: {loa_upper_percent_diff:.3f}")
-        fig2.add_hline(y=loa_lower_percent_diff, line_color='blue', line_dash='dash', annotation_text=f"-1.96 SD: {loa_lower_percent_diff:.3f}")
+        # Upper % LoA
+        fig2.add_trace(go.Scatter(
+            x=[means.min(), means.max()],
+            y=[loa_upper_percent_diff, loa_upper_percent_diff],
+            mode='lines',
+            line=dict(color='slateblue', dash='dash'),
+            name=f"+1.96 SD: {loa_upper_percent_diff:.2f}%"
+        ))
+
+        # Lower % LoA
+        fig2.add_trace(go.Scatter(
+            x=[means.min(), means.max()],
+            y=[loa_lower_percent_diff, loa_lower_percent_diff],
+            mode='lines',
+            line=dict(color='slateblue', dash='dash'),
+            name=f"-1.96 SD: {loa_lower_percent_diff:.2f}%"
+        ))
+
 
         # Update layout for the plot
         fig2.update_layout(
@@ -270,8 +346,8 @@ def run():
                     'SD of Differences': round(std_diff, 3),
                     'LoA Lower': round(loa_lower, 3),
                     'LoA Upper': round(loa_upper, 3),
-                    'p-value': round(p_val, 3),
-                    'Outcome': outcome
+                    'p-value': round(p_val, 3)
+                    # 'Outcome': outcome
                 })
                 except Exception as e:
                     st.warning(f"⚠️ Could not process '{selected_analyte}' for material '{material}': {e}")
@@ -284,7 +360,7 @@ def run():
 
             # Highlight statistically different rows
             def highlight_significant(row):
-                return ['background-color: #ffcccc' if row['p-value'] <= 0.05 else ' ' for _ in row]
+                return ['background-color: #f7f7f2' if row['p-value'] <= 0.00 else ' ' for _ in row]
 
             st.dataframe(summary_df.style.apply(highlight_significant, axis=1), use_container_width=True)
 

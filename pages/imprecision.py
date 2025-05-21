@@ -38,11 +38,11 @@ with st.expander("📘 What is Imprecision Analysis?", expanded=True):
                 
     \n As a general rule-of-thumb, if the nominal bias between instruments is smaller than the inter-analyser CV (%), and the p-value is not significant (i.e., > 0.05), then there is no strong evidence that the instruments differ in a meaningful or consistent way. Inter-analyser %CV you calculate is based on the standard deviation of mean values across analyzers for a given analyte-material pair. The associated p-value is derived from a one-way ANOVA, which tests whether the means from different analyzers are significantly different from each other. 
 
-    \n <small> ✅ Low bias + High p-value: No significant difference — acceptable agreement.</small>
+    \n > <small> ✅ **Low bias + High p-value:** No significant difference — acceptable agreement.</small>
 
-    \n <small> ⚠️ Low bias + Low p-value: Statistically significant difference, but it may not be clinically relevant — further investigation may be warranted.</small>
+    \n > <small> ⚠️ **Low bias + Low p-value:** Statistically significant difference, but it may not be clinically relevant — further investigation may be warranted.</small>
 
-    \n <small> ❌ High bias + Low p-value: Significant and possibly clinically relevant difference — calibration or methodological review required.</small>
+    \n > <small> ❌ **High bias + Low p-value:** Significant and possibly clinically relevant difference — calibration or methodological review required.</small>
 
     \n From this module, you can visualize and evaluate your data, applying Westgard rules and performing a Grubbs' test to identify statistically significant outliers.
 
@@ -90,10 +90,7 @@ with st.expander("📘 Instructions:", expanded=False):
     This tool allows you to assess **intra-well, intra-batch, and inter-batch imprecision** across different levels of control or patient materials.
 
     1. **Upload your CSV file** – it should contain repeated measurements for the same sample/material across different runs or days.
-        
-
     2. Your file should include the following columns:
-    
     - `Date` – can be in short or long date format
     - `Test` (e.g., Intra_Batch_Imprecision, Inter_Batch_Imprecision)
     - `Analyser` (e.g., Waters TQ-D 1, Waters TQ-D 2)
@@ -101,7 +98,6 @@ with st.expander("📘 Instructions:", expanded=False):
     - `Sample ID` (e.g., 12345, 67890)
     - `Batch ID` (e.g., Test_Batch_123)
     - One or more **analyte columns** – ensure consistent naming and avoid use of special characters. You DO NOT need to include units in the column names.
-    
 
     3. After upload, the app will:
     - Group data by `Material`, `QC Level`, and `Analyte`

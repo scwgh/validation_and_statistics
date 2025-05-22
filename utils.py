@@ -84,5 +84,25 @@ def check_westgard_rules(values, mean, sd, rules_enabled):
             if all(np.sign(zj) == np.sign(zs[0]) for zj in zs):
                 alerts.extend([(j, "10x") for j in range(i-9, i+1)])
 
-    return list(set(alerts))  # unique alerts
+    return list(set(alerts))
+
+def show_footer():
+    st.markdown(
+        """
+        <footer>
+            <p style='text-align: center; font-size: 14px;'>
+                &copy; 2025 Validation and Statistical Analysis App. All rights reserved.
+                <br>
+                Licensed under the <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" style='color: #4C9ED9;'>Apache 2.0 License</a>. 
+                This app does not store uploaded data and is intended for research and validation use only.
+                No warranties are provided. The creators are not responsible for any results, interpretations, or decisions made using this app. You are responsible for ensuring compliance with local data protection and regulatory guidelines when uploading or analyzing data.
+                <br><br>
+                <a href="https://github.com/scwgh/validation_and_statistics" target="_blank" style='text-decoration: none; color: #4C9ED9;'>GitHub Repository</a> |
+                <a href="mailto:validation.and.stats@gmail.com" style='text-decoration: none; color: #4C9ED9;'>Contact Support</a>
+            </p>
+        </footer>
+        """,
+        unsafe_allow_html=True
+    )
+
 

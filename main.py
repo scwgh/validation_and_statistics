@@ -1,4 +1,3 @@
-# --- Import Required Libraries ---
 import os
 import time
 import warnings
@@ -17,10 +16,9 @@ from scipy.odr import ODR, Model, RealData
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
 from statsmodels.stats.anova import anova_lm
-from utils import apply_app_styling
+from utils import apply_app_styling, show_footer
 import kaleido  
 
-# --- Streamlit Page Configuration ---
 st.set_page_config(
     page_title="Validation and Statistical Analysis App - v. 1.04",
     page_icon=":computer:",
@@ -28,14 +26,12 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# --- Apply Custom Styling ---
 apply_app_styling()
 
-# --- Sidebar Navigation ---
 st.sidebar.header("🔍 Validation Processes")
 st.sidebar.info("Select a validation process from the sidebar above.")
 
-# --- Dynamic Greeting ---
+
 hour = datetime.now().hour
 if hour < 12:
     greeting = "Good Morning! 🌞"
@@ -44,7 +40,6 @@ elif 12 <= hour < 18:
 else:
     greeting = "Good Evening! 🌙"
 
-# --- Display Greeting Pop-up ---
 # st.markdown(f"""
 #     <div id="greeting" style="
 #         position: fixed; top: 10%; right: 10%; 
@@ -72,8 +67,6 @@ else:
 #     </style>
 # """, unsafe_allow_html=True)
 
-
-# --- Main Page Welcome Message ---
 st.markdown(
     f"""
     <h2 style='text-align: center; color: #2C3E50;'>Welcome to the Validation and Statistical Analysis App (v. 1.03) <span class='wave'>👋</span></h2>
@@ -81,9 +74,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
-
-# --- About Section ---
 with st.expander("📖 About this App", expanded=True):
     st.markdown(
         """
@@ -111,7 +101,6 @@ with st.expander("🛠️ Development, Deployment, and Contact", expanded=False)
                 \n If you have any issues or questions regarding this app .
     """)
 
-# --- Available Modules ---
 with st.expander("📖 Which modules are available?", expanded=False):
     st.markdown(
         """
@@ -166,21 +155,4 @@ with st.expander("📖 Which modules are available?", expanded=False):
             - 📏 Z-test        
         """
     )
-
-
-# --- Footer with Links and Social Icons ---
-st.markdown(
-    """
-    <footer>
-        <p style='text-align: center; font-size: 14px;'>
-            &copy; 2025 Validation and Statistical Analysis App. All rights reserved. 
-            <br><br>
-            <a href="https://github.com/scwgh/validation_and_statistics" target="_blank" style='text-decoration: none; color: #4C9ED9;'>GitHub Repository</a> | 
-            <a href="mailto:validation.and.stats@gmail.com" style='text-decoration: none; color: #4C9ED9;'>Contact Support</a>
-        </p>
-    </footer>
-    """, 
-    unsafe_allow_html=True
-)
-
-# --- End of Main Page ---
+show_footer()

@@ -59,9 +59,13 @@ This app uses the following core libraries:
 - `matplotlib`, `seaborn`, `plotly`
 - `scipy`, `statsmodels`
 - `kaleido` (for exporting plots)
+
 - Custom styling via `utils.py`
 
----
+## Privacy Policy
+
+See [PRIVACY.md](./PRIVACY.md) for details on how data is handled.
+
 
 ## ▶️ Getting Started
 

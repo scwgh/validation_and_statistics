@@ -69,7 +69,7 @@ with open("vnv_linearity_template.csv", "rb") as file:
 
 st.subheader("🧪 Limits Template")
 st.markdown("Use this template to estimate the LOB and LOD from replicate measurements of blank and samples near the detection threshold.")
-with open("vnv_limits_template.csv_v2", "rb") as file:
+with open("vnv_limits_template_v2.csv", "rb") as file:
     st.download_button(
         label="⬇ Download Limits Template",
         data=file,

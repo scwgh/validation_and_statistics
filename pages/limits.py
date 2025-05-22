@@ -46,7 +46,6 @@ with st.expander("📘 Instructions"):
     4. The calculation results will appear below once performed.
     """)
 
-# --- File Upload Function ---
 def upload_data():
     with st.expander("📤 Upload Your CSV File", expanded=True):
         st.markdown("Upload a CSV containing your analyte data. Ensure it includes the following columns: `Material`, `Analyser`, and `Sample ID`.")
@@ -62,9 +61,8 @@ def upload_data():
             st.info("Awaiting file upload...")
             return None
 
-# --- Calculation Logic for LOB ---
 def calculate_lob(df):
-    analyte_columns = ['C10', 'C5', 'C5DC', 'C8', 'Met', 'Phe', 'Tyr', 'Xle', 'Suac']
+    analyte_columns = [df.columns[i] for i in range(8, len(df.columns), 3)] 
     blank_data = df[df['Material'].str.lower() == 'blank']
     results_lob = {
         'Analyte': [],
@@ -78,12 +76,9 @@ def calculate_lob(df):
 
         if blank_vals.empty:
             continue
-
         blank_mean = round(blank_vals.mean(), 5)
         blank_sd = round(blank_vals.std(), 5)
-
         lob = round(blank_mean + 1.645 * blank_sd, 5)
-
         results_lob['Analyte'].append(analyte)
         results_lob['Blank Mean'].append(blank_mean)
         results_lob['Blank SD'].append(blank_sd)
@@ -93,7 +88,6 @@ def calculate_lob(df):
     st.subheader("📊 Limit of Blank (LOB) Summary")
     st.dataframe(result_lob_df)
 
-# --- Calculation Logic for LOD & LOQ (Response-based) ---
 def calculate_lod_loq_response(df):
     analyte_columns = [df.columns[i] for i in range(8, len(df.columns), 3)] 
     low_data = df[df['Material'].str.lower().str.contains('low', na=False)]
@@ -103,7 +97,6 @@ def calculate_lod_loq_response(df):
         'Low SD (Response)': [],
         'LOD (Response)': []
     }
-
     for analyte in analyte_columns:
         response_col = f'{analyte} Response'
         if response_col not in df.columns:
@@ -113,7 +106,6 @@ def calculate_lod_loq_response(df):
         try:
             response_vals = pd.to_numeric(low_data[response_col], errors='coerce')
             valid = response_vals.notna()
-
             if valid.sum() < 2:
                 st.warning(f"⚠️ Not enough valid data for {analyte}")
                 continue
@@ -121,7 +113,6 @@ def calculate_lod_loq_response(df):
             sd_response = round(response_vals[valid].std(), 5)
             lod = round(mean_response + 3 * sd_response, 5)
             loq = round(10 * sd_response, 5)
-
             results_lod_loq_response['Analyte'].append(analyte)
             results_lod_loq_response['Low SD (Response)'].append(sd_response)
             results_lod_loq_response['LOD (Response)'].append(lod)
@@ -161,25 +152,17 @@ def calculate_lod_loq_concentration(df):
     st.subheader("📊 LOD Summary (Concentration-based)")
     st.dataframe(result_lod_loq_concentration_df)
 
-# --- Upload data ---
 df = upload_data()  
-
-# --- LOB Calculation Expander ---
 with st.expander("📊 Calculate Limit of Blank (LOB)", expanded=True):
     if df is not None:
         calculate_lob(df)
-
-# --- LOD & LOQ Calculation Expander (Response-based) ---
 with st.expander("📊 Calculate Limit of Detection (LOD) (Response-based)", expanded=True):
     if df is not None:
         calculate_lod_loq_response(df)
-
-# --- LOD & LOQ Calculation Expander (Concentration-based) ---
 with st.expander("📊 Calculate Limit of Detection (LOD) (Concentration-based)", expanded=True):
     if df is not None:
         calculate_lod_loq_concentration(df)
 
-# --- Reference Section ---
 with st.expander("📚 References"):
     st.markdown("""
     **Armbruster, D.A. and Pry, T. (2008)**, *Limit of Blank, Limit of Detection and Limit of Quantitation*, The Clinical biochemist. Reviews, 29 Suppl 1(Suppl 1), S49–S52

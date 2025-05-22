@@ -151,6 +151,13 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
     subplot_titles = [f"{material} - {analyzer}" for (material, analyzer) in inter_batch_groups.groups.keys()]
     num_plots = len(subplot_titles)
 
+    # plot_layout = st.radio(
+    #     "Plot Layout", 
+    #     ["Two Columns", "Single Column"], 
+    #     index=0,
+    #     horizontal=True
+    # )
+
     if num_plots > 0:
         fig = make_subplots(
             rows=(num_plots + 1) // 2,
@@ -178,8 +185,7 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
         overall_mean = round(group[selected_analyte].mean(), 2)
         sd = round(group[selected_analyte].std(), 2)
 
-        # Use the first occurrence of each name for showlegend and legendgroup
-        legend_flag = True if row == 1 and col == 2 else False  # Show legend only for the top-right plot
+        legend_flag = True if row == 1 and col == 2 else False  
         legend_group_sample = 'Sample'
         legend_group_mean = 'Mean'
         legend_group_sd = 'SD'
@@ -266,8 +272,6 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
             group = group.drop(index=group.index[westgard_violations])
             st.warning(f"{len(westgard_violations)} Westgard rule violations excluded for {material} [{analyzer}]")
 
-
-        # After applying Grubbs' test and identifying outliers, gather the details
         outlier_details = []
         if grubbs_outliers.get("perform_grubbs"):
             outlier_alerts = grubbs_test(group[selected_analyte])
@@ -331,9 +335,9 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
         for r in range(1, num_rows + 1):
             for c in range(1, 3):
                 fig.update_xaxes(
-                    showticklabels=True,      # Show x-axis labels on all plots
+                    showticklabels=True,
                     tickangle=45,
-                    tickformat="%b-%y",   # Or any format you prefer
+                    tickformat="%b-%y",  
                     row=r,
                     col=c
                 )
@@ -377,7 +381,7 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
                     group = group.drop(index=outlier_indices)
 
             if group.empty or len(group) < 2:
-                continue  # Skip if not enough data after outlier removal
+                continue 
 
             # ✅ Recalculate mean and SD after exclusions
             overall_mean = round(group[analyte].mean(), 2)
@@ -495,7 +499,6 @@ if uploaded_file:
     if len(df.columns) <= 5:
         st.warning("❗️ Not enough analyte columns detected.")
     else:
-        # Select analyte for analysis
         analyte_options = df.columns[7:]
         selected_analyte = st.selectbox("🔎 Select Analyte to View", analyte_options)
 
@@ -547,8 +550,6 @@ if uploaded_file:
                 "exclude_grubbs": exclude_grubbs
             }
 
-      
-        # Analyze the filtered data
         with st.spinner("Analyzing..."):
             intra_well_df, intra_batch_df, inter_batch_df, analyser_comparison, filtered_data, outlier_indices = precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, units=units)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M")
@@ -578,7 +579,7 @@ if uploaded_file:
             st.dataframe(inter_analyser_df)
             # st.download_button("⬇ Download Inter-Analyser Stats", inter_analyser_df.to_csv(index=False), f"inter_analyser_stats_{timestamp}.csv")
 
-# --- Optional Reference Section ---
+# --- Reference Section ---
 with st.expander("📚 References"):
     st.markdown("""
     **Westgard, J.O., Barry, P.L., and Hunt, M.R. (1981)**, *A Multi-Rule Shewhart Chart for Quality Control in Clinical Chemistry*, Clinical Chemistry, 27 (3), pp.493-501
@@ -587,4 +588,3 @@ with st.expander("📚 References"):
     \n **Westgard J.O., and Klee, G.G.** (1994) Quality Management. Chapter 17 in Textbook of Clinical Chemistry, 2nd edition. Burtis C, ed., WB Saunders Company, Philadelphia, pp.548-592.
     \n **Westgard J.O., and Klee, G.G.** (1996) Quality Management. Chapter 16 in Fundamentals of Clinical Chemistry, 4th edition. Burtis C, ed., WB Saunders Company, Philadelphia, 1996, pp.211-223.
     """)
-

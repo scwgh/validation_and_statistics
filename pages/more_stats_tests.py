@@ -1,23 +1,16 @@
 import streamlit as st
 import sys
-# sys.path.insert(0, '/workspaces/validation_app')  # Adjust if needed
-
 from pages.statistical_tests import (
     anderson_darling, bartlett_test, f_test, t_test, cusum, cochran,
     kolmogorov_smirnov, kruskal_wallis, levene_test,
     mann_whitney_u, p_p_plots, q_q_plots, shapiro_wilk, tea, z_test, chi_squared
 )
 from utils import apply_app_styling
-
 apply_app_styling()
-
 st.title("📊 More Statistical Tests")
-
-# Initialize session state
 if "selected_test" not in st.session_state:
     st.session_state.selected_test = "Home"
 
-# Descriptive intro
 with st.expander("📘 Why perform more statistical tests?", expanded=True):
     st.markdown("""
     This section provides additional statistical tests commonly used in laboratory validation and verification analysis.
@@ -25,7 +18,6 @@ with st.expander("📘 Why perform more statistical tests?", expanded=True):
     \n **Disclaimer**: This section is **in development** and some of the features below may be prone to error. The following buttons are NOT ACTIVE and are prone to error: Anderson-Darling, Bartlett, Cochran, Kolmogorov-Smirnov, Kruskal-Wallis and Levene's Test. 
     \n If you encounter any further issues, please report them on the GitHub repository.
     """)
-
 with st.expander("📘 How do I know which statistical test to choose?", expanded=False):
     st.markdown("""
     Understanding which statistical test is most appropriate for your data is sometimes a bit of a maze. This module incorporates a number of different statistical tests which are suitable for verification, validation, linearity adn 
@@ -47,7 +39,7 @@ with st.expander("📘 How do I know which statistical test to choose?", expande
     - **Z-test** – Tests whether a sample mean differs significantly from a known population mean. Suitable when population variance is known or sample size is large.
     """)
 
-# Define button labels and their module mapping
+
 test_names = [
     "Anderson-Darling Test", "Bartlett's Test", "Chi-Squared Test", "Cochran's Test", "CUSUM Test",
     "F-test", "Kolmogorov–Smirnov Test", "Kruskal-Wallis Test", "Levene's Test",
@@ -73,14 +65,11 @@ module_map = {
     "Z-test": z_test,
 }
 
-# Create rows of buttons (3 per row)
 for i in range(0, len(test_names), 3):
     cols = st.columns(3)
     for col, test_name in zip(cols, test_names[i:i+3]):
         if col.button(test_name):
             st.session_state.selected_test = test_name
-
-# Load selected test module
 selected_test = st.session_state.selected_test
 if selected_test and selected_test != "Home":
     module = module_map.get(selected_test)

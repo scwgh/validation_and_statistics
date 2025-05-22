@@ -20,20 +20,14 @@ import warnings
 import plotly.graph_objects as go
 from utils import apply_app_styling
 
-# Set up the page config
 st.set_page_config(
     page_title="Validation Templates",
     page_icon="📂",
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
 apply_app_styling() 
-
-# Main title
 st.title("📂 Validation Templates")
-
-# Introduction markdown
 st.markdown(
     """
     This app provides a comprehensive platform for performing various validation and verification analyses in laboratory settings. 
@@ -52,7 +46,6 @@ st.markdown(
     """
 )
 
-# Section: 🎯 Imprecision and Method Comparison Template
 st.subheader(" 🎯 Imprecision and Method Comparison Template")
 st.markdown("This template includes may include data for QC, EQA and Patient samples. This file can then be used to assess imprecision and for method comparison.")
 
@@ -64,10 +57,8 @@ with open("vnv_data_template.csv", "rb") as file:
         mime="text/csv"
     )
 
-# Section: 📈 Linearity and Calibration Template
 st.subheader("📈 Linearity and Calibration Template")
 st.markdown("Use this template to assess linearity and generate calibration curves for analytes across concentration ranges.")
-
 with open("vnv_linearity_template.csv", "rb") as file:
     st.download_button(
         label="⬇ Download Linearity Template",
@@ -76,14 +67,12 @@ with open("vnv_linearity_template.csv", "rb") as file:
         mime="text/csv"
     )
 
-# Section: 🧪 Limits Template
 st.subheader("🧪 Limits Template")
 st.markdown("Use this template to estimate the LOB, LOD and LOQ from replicate measurements of blank and samples near the detection threshold.")
-
 with open("vnv_limits_template.csv", "rb") as file:
     st.download_button(
         label="⬇ Download Limits Template",
         data=file,
-        file_name="vnv_limits_template.csv",
+        file_name="vnv_limits_template_v2.csv",
         mime="text/csv"
     )

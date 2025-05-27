@@ -37,8 +37,6 @@ with st.expander("📘 Why perform Method Comparison?", expanded=True):
     **Disclaimer:** The _ANOVA_ modules are in development. If you identify any errors using these modules, please log them on GitHub.
     """)
 
-
-# Define available tests and their module names
 test_options = [
     "One-Way ANOVA",
     "Two-Way Crossed ANOVA",
@@ -48,7 +46,6 @@ test_options = [
     "Deming Regression",
     "Passing Bablok Regression",
 ]
-
 module_map = {
     "One-Way ANOVA": "one_way_anova",
     "Two-Way Crossed ANOVA": "two_way_crossed",
@@ -58,26 +55,19 @@ module_map = {
     "Deming Regression": "deming_regression",
     "Passing Bablok Regression": "passing_bablok",
 }
-
-# Create a state variable for selected test if not already initialized
 if "selected_test" not in st.session_state:
     st.session_state.selected_test = None
-
-# Layout: Button row for test selection
 with st.expander("Select a test to get started..", expanded=True):
     st.markdown("Choose a test to perform from the options below:")
     cols = st.columns(len(test_options))
     for i, test in enumerate(test_options):
         if cols[i].button(test):
             st.session_state.selected_test = test
-
-# Only run the module if a test has been selected
 if st.session_state.selected_test:
     selected_test = st.session_state.selected_test
     if selected_test in module_map:
         selected_module = module_map[selected_test]
         module_path = f"pages.method_comparison.{selected_module}"
-
         try:
             module = importlib.import_module(module_path)
             if hasattr(module, "run"):
@@ -88,4 +78,4 @@ if st.session_state.selected_test:
             st.error(f"Module `{module_path}` not found. Check the file structure.")
         
 else:
-    st.markdown("  ")  # Keeps space when no test is selected.
+    st.markdown("  ")  

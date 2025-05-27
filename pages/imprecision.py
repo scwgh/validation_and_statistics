@@ -407,19 +407,20 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
     analyser_comparison = []
     differences = []
 
+    filtered_qc_df = qc_df[~qc_df.index.isin(excluded_indices)]
     for (analyte, material), means_dict in analyzer_means.items():
         analyzers = list(means_dict.keys())
         if len(analyzers) < 2:
             continue
 
         analyzer_values = [
-            qc_df[
-                (qc_df['Material'] == material) & 
-                (qc_df['Analyser'] == analyzer) & 
-                (~qc_df.index.isin(excluded_indices))
+            filtered_qc_df[
+                (filtered_qc_df['Material'] == material) & 
+                (filtered_qc_df['Analyser'] == analyzer)
             ][analyte].dropna()
             for analyzer in analyzers
         ]
+
 
         analyzer_values = [vals for vals in analyzer_values if len(vals) >= 2]
 
@@ -477,7 +478,6 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
             'P(F <= f) one-tail': "<0.05" if not np.isnan(p_value) and p_value < 0.05 else round(p_value, 4) if not np.isnan(p_value) else np.nan
             
         })
-
         differences.append({
             'Analyte': analyte,
             'Material': material,
@@ -530,15 +530,12 @@ if uploaded_file:
 
         units = st.selectbox(
             "Select Units",
-            options=["nmol/L", "μmol/L", "mmol/L", "mg/dL", "g/L", "ng/mL"], 
+            options=["pmol/L", "nmol/L", "μmol/L", "mmol/L", "mg/L", "mg/dL", "g/L", "ng/mL", "IU/L"], 
             index=0
         )
         # --- Westgard & Grubbs Controls Section ---
         with st.expander("⚙️ Settings: Westgard Rules & Outlier Detection", expanded=True):
-
-            
             tab1, tab2 = st.tabs(["❌ Westgard Rules", "🟪 Perform Grubbs` Test"])
-
             with tab1:
                 col1, col2, col3 = st.columns(3)
                 with col1:

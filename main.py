@@ -1,9 +1,15 @@
 import streamlit as st
+import sqlite3
+import pandas as pd
 from datetime import datetime
+# from signup_utils import init_db, save_signup, get_signups
+import streamlit.components.v1 as components
 from utils import apply_app_styling, show_footer
 
+admin_password = st.secrets["admin"]["password"]
+
 st.set_page_config(
-    page_title="Validation and Statistical Analysis App v. 1.04",
+    page_title="Validation and Statistical Analysis App",
     page_icon=":computer:",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -11,7 +17,6 @@ st.set_page_config(
 
 apply_app_styling()
 
-# Global styles
 st.markdown("""
 <style>
     body, p {
@@ -59,46 +64,45 @@ st.markdown("""
 st.sidebar.header("🔍 Validation Processes")
 st.sidebar.info("Select a validation process from the sidebar above.")
 
-# Greeting logic
-hour = datetime.now().hour
-if hour < 12:
-    greeting = "Good Morning! 🌞"
-    bg_color = "#4A90E2"
-elif 12 <= hour < 18:
-    greeting = "Good Afternoon! 🌻"
-    bg_color = "#1f77b4"
-else:
-    greeting = "Good Evening! 🌙"
-    bg_color = "#0B3D91"
+# # Greeting logic
+# hour = datetime.now().hour
+# if hour < 12:
+#     greeting = "Good Morning! 🌞"
+#     bg_color = "#4A90E2"
+# elif 12 <= hour < 18:
+#     greeting = "Good Afternoon! 🌻"
+#     bg_color = "#1f77b4"
+# else:
+#     greeting = "Good Evening! 🌙"
+#     bg_color = "#0B3D91"
 
-st.markdown(f"""
-    <div style="
-        position: fixed;
-        top: 70px;
-        right: 30px;
-        background-color: {bg_color};
-        color: white;
-        padding: 14px 24px;
-        font-size: 16px;
-        font-weight: 500;
-        border-radius: 10px;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        text-align: center;
-        max-width: 280px;
-        z-index: 1000;
-        animation: fadeOutGreeting 6s forwards;
-        ">
-        {greeting}
-    </div>
-    <style>
-        @keyframes fadeOutGreeting {{
-            0% {{ opacity: 1; }}
-            80% {{ opacity: 1; }}
-            100% {{ opacity: 0; visibility: hidden; }}
-        }}
-    </style>
-""", unsafe_allow_html=True)
+# st.markdown(f"""
+#     <div style="
+#         position: fixed;
+#         top: 70px;
+#         right: 30px;
+#         background-color: {bg_color};
+#         color: white;
+#         padding: 14px 24px;
+#         font-size: 16px;
+#         font-weight: 500;
+#         border-radius: 10px;
+#         box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+#         text-align: center;
+#         max-width: 280px;
+#         z-index: 1000;
+#         animation: fadeOutGreeting 6s forwards;
+#         ">
+#         {greeting}
+#     </div>
+#     <style>
+#         @keyframes fadeOutGreeting {{
+#             0% {{ opacity: 1; }}
+#             80% {{ opacity: 1; }}
+#             100% {{ opacity: 0; visibility: hidden; }}
+#         }}
+#     </style>
+# """, unsafe_allow_html=True)
 
 # Main Title
 st.markdown(
@@ -111,27 +115,56 @@ st.markdown(
 with st.spinner("Loading the analysis tools... Please wait!"):
     st.success("Analysis tools loaded successfully! Let's get started with your validation analysis! 🎉")
 
+
 # About section in card style
 with st.container():
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.header("📖 About this App")
     st.markdown("""
-    This app is currently operating version 1.04, which includes several improvements and bug fixes.
-    
-    Designed to assist laboratory professionals in performing validation and verification analyses with a user-friendly interface for various statistical tests including linear regression, imprecision analysis, method comparison analysis, and outlier testing.
 
-    Some modules are in development (e.g., Anderson-Darling, Bartlett, Cochran, Kolmogorov-Smirnov, Kruskal-Wallis, and Levene's Test). **DO NOT use modules flagged as "in development" until the message has been cleared.**
+    Welcome to the **Validation and Statistics App** — your comprehensive tool designed specifically for laboratory professionals seeking to streamline and enhance the process of analytical method validation and verification.
+
+    This app offers a **user-friendly interface** to perform a broad range of essential statistical analyses critical to ensuring data quality and compliance with regulatory standards. 
+
+    ### Why Use This App?
+
+    - **Simplifies Complex Statistics:** No advanced programming knowledge needed—intuitive controls guide you through each analysis step.
+    - **Saves Time:** Automates calculations and generates clear visualizations and reports instantly.
+    - **Improves Data Confidence:** Helps you identify measurement variability, biases, and method performance issues early.
+    - **Supports Compliance:** Facilitates adherence to regulatory requirements and quality assurance protocols.
+    - **Customizable & Extensible:** Modules can be expanded, and additional tests are continuously integrated based on user feedback.
+
+    ---
+
+    ### Upcoming Features (In Development)
+
+    We are actively working to include more advanced statistical tests to further empower your data analysis, including:
+
+    - Anderson-Darling Test (normality testing)
+    - Bartlett’s Test (homogeneity of variances)
+    - Cochran’s Test (variance analysis)
+    - Kolmogorov-Smirnov Test (distribution comparisons)
+    - Kruskal-Wallis Test (non-parametric group comparisons)
+    - Levene’s Test (variance equality)
+
+    **Please note:** Modules flagged as **“in development”** are not yet fully validated. **Do not use these modules for critical decision-making until you see a clear confirmation message indicating they are production-ready.**
+
+    ---
+
+    ### Feedback & Support
+
+    We encourage users to provide feedback and suggestions to help us improve and tailor this app to your laboratory needs. Your input directly influences new features and updates.
+    \n If you want to hear about new features, updates, or releases, please sign up for our email list at the bottom of this page. If you have any questions, suggestions, or need assistance, please use the feedback form also at the bottom of this page.
+    \n We are committed to continuously enhancing this app to meet the evolving needs of laboratory professionals.
+    \n Thank you for choosing our Validation and Statistics App! We look forward to supporting your laboratory's analytical excellence.
     """)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Data upload section
-with st.container():
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.header("📂 Data Upload and Templates")
+# Data Upload Section inside an Expander
+with st.expander("📂 Data Upload and Templates", expanded=False):
     st.markdown("""
-    For each module, your data must be in CSV format. Ensure your data follows the provided templates available in the sidebar.
+    
+    \n For each module, your data must be in CSV format. Ensure your data follows the provided templates available in the sidebar.
 
-    Column names and order (Date, Material, Analyser, Sample ID, Batch ID, Lot Number) must be consistent to ensure proper analysis.
+    Column names and order (**Date, Material, Analyser, Sample ID, Batch ID, Lot Number**) must be consistent to ensure proper analysis.
 
     You may insert as many analyte names as needed—avoid spaces or special characters (**e.g., @ : ; ! , . # < >**) in column names or data.
 
@@ -141,10 +174,8 @@ with st.container():
     """)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Modules section
-with st.container():
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.header("📖 Available Modules")
+# Modules Section inside an Expander
+with st.expander("📖 Available Modules", expanded=False):
     st.markdown("""
     Use the sidebar to navigate the comprehensive platform offering validation and verification analyses for laboratory settings.
 
@@ -169,25 +200,63 @@ with st.container():
       - Deming Regression
       - Passing-Bablok Analysis
     - **Outliers**
-      - Grubbs` Test - *in development*
-      - Tietjen-Moore Test - *in development*
+      - Grubbs' Test — *in development*
+      - Tietjen-Moore Test — *in development*
     - **More Statistical Tests**
-      - Anderson-Darling Test - *in development*
-      - Bartlett's Test - *in development*
+      - Anderson-Darling Test — *in development*
+      - Bartlett's Test — *in development*
       - Chi-Squared Test
       - Cochran's Test
       - CUSUM Test
       - F-test
-      - Kolmogorov-Smirnov Test - *in development*
-      - Kruskal-Wallis Test - *in development*
-      - Levene's Test - *in development*
+      - Kolmogorov-Smirnov Test — *in development*
+      - Kruskal-Wallis Test — *in development*
+      - Levene's Test — *in development*
       - Mann-Whitney U Test
       - P-P Plots
       - Q-Q Plots
-      - Shapiro-Wilk Test - *in development*
+      - Shapiro-Wilk Test — *in development*
       - T-test
       - Total Allowable Error (TEa)
       - Z-test
     """)
     st.markdown("</div>", unsafe_allow_html=True)
+
+with st.expander(":envelope: Join the Mailing List"):
+    components.html(
+        """
+        <div style="width:100%; height:1400px; overflow:hidden;">
+            <iframe 
+                width="100%" 
+                height="1400px" 
+                src="https://forms.office.com/Pages/ResponsePage.aspx?id=pAt3Bl-NYUKZepKf633PeHHvy4O17RdBju0TuYj6WfpUMURGVzRMRk1HWVcwUjRaVUhJTlVLNk9RVy4u&embed=true" 
+                frameborder="0" 
+                marginwidth="0" 
+                marginheight="0" 
+                style="border: none; max-width: 100%; overflow: hidden;" 
+            </iframe>
+        </div>
+        """,
+        height=1420,
+    )
+
+
+with st.expander(":clipboard: Submit Feedback or Request Features"):
+    components.html(
+        """
+        <div style="width:100%; height:1400px; overflow:hidden;">
+            <iframe 
+                width="100%" 
+                height="1400px" 
+                src="https://forms.office.com/Pages/ResponsePage.aspx?id=pAt3Bl-NYUKZepKf633PeHHvy4O17RdBju0TuYj6WfpUNUpZT1YxOVA4OEZGU0pVNjI1QThKWDI4Ni4u&embed=true" 
+                frameborder="0" 
+                marginwidth="0" 
+                marginheight="0" 
+                style="border: none; max-width: 100%; overflow: hidden;" 
+            </iframe>
+        </div>
+        """,
+        height=1420,
+    )
+    
 show_footer()

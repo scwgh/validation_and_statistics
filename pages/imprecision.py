@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from itertools import combinations
 from datetime import datetime
-from utils import apply_app_styling, check_westgard_rules, grubbs_test
+from utils import apply_app_styling, check_westgard_rules, grubbs_test, units_list
 
 # Set up the page config
 st.set_page_config(
@@ -151,7 +151,7 @@ with st.expander("📘 Instructions:", expanded=False):
 def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, exclude_westgard=False, units="μmol/L"):
     results = []
     outlier_indices = []
-    filtered_data = df.copy()  # default if not computed
+    filtered_data = df.copy() 
     qc_df = df[df['Material'].str.contains('QC', na=False)]
 
     inter_batch_groups = qc_df[qc_df['Test'] == 'Inter_Batch_Imprecision'].groupby(['Material', 'Analyser'])
@@ -530,7 +530,7 @@ if uploaded_file:
 
         units = st.selectbox(
             "Select Units",
-            options=["pmol/L", "nmol/L", "μmol/L", "mmol/L", "mg/L", "mg/dL", "g/L", "ng/mL", "IU/L"], 
+            options=units_list, 
             index=0
         )
         # --- Westgard & Grubbs Controls Section ---

@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
+import re
 from utils import apply_app_styling
 
 # Page setup
@@ -20,37 +22,28 @@ with st.expander("📘 What are limits?", expanded=True):
     \n **LOD**, or **Limit of Detection**, refers to the **lowest concentration of an analyte** that can be reliably distinguished from background noise or a blank signal—but not necessarily quantified with accuracy or precision.
     """)
     st.latex(r"\text{LOD} = \mu_{\text{blank}} + {\text{3SD}}")
-    st.markdown(""" The LOD for each analyte is estimated as the mean response of the blank replicates plus three times the standard deviation of the blank replicates.""")
-    st.markdown("""**LOB**, or **Limit of Blank**, is the highest concentration of analyte that is likely to be found in a blank sample.
-    """)
+    st.markdown("""**LOB**, or **Limit of Blank**, is the highest concentration of analyte that is likely to be found in a blank sample.""")
     st.latex(r"\text{LOB} = \mu_{\text{blank}} + 1.645 \cdot \sigma_{\text{blank}}")
-
-    st.markdown("""**LOQ**, or **Limit of Quantification**, is the lowest concentration at which the analyte can be quantitatively detected with acceptable precision and accuracy.    
-    \n The LOQ section is currently being developed and will be available soon.""")
+    st.markdown("""For the purpose of these analyses, LOB is not included. """)
+    st.markdown("""**LOQ**, or **Limit of Quantification**, is the lowest concentration at which the analyte can be quantitatively detected with acceptable precision and accuracy.""")
     st.latex(r"\text{LOQ} = 10 \cdot \sigma_{\text{low concentration sample}}")
 
 # --- Instructions ---
 with st.expander("📘 Instructions"):
-    st.markdown("""***For LOB analysis:***""")
-    st.markdown("""
-    1. Upload a CSV file with your limit data.
-    2. Ensure the file includes repeated blank samples labeled in the `Material` column.
-    3. Select the analyte columns (numeric values expected).
-    4. The calculation results will appear below once performed.
-    """)
-    st.markdown("""***For LOD/LOQ analysis:***""")
-    st.markdown("""
-    1. Upload a CSV file with your limit data.
-    2. Ensure the file includes repeated low concentration samples labeled in the `Material` column (e.g., LowConc1).
-    3. Select the analyte columns (numeric values expected).
-    4. The calculation results will appear below once performed.
-    """)
+    st.markdown("""**For LOB analysis:** Upload a CSV file with repeated blank samples labeled in the `Material` column.""")
+    st.markdown("""**For LOD/LOQ analysis:** Upload a CSV file with repeated low concentration samples labeled (e.g., LowConc1), and ensure analyte columns contain numeric values.""")
 
+def get_analyte_names(df):
+    pattern = r'Calculated (.+)'  # Look for 'Calculated <Analyte>'
+    analyte_names = [re.match(pattern, col).group(1) for col in df.columns if re.match(pattern, col)]
+    return analyte_names
+
+
+# --- Upload ---
 def upload_data():
     with st.expander("📤 Upload Your CSV File", expanded=True):
-        st.markdown("Upload a CSV containing your analyte data. Ensure it includes the following columns: `Material`, `Analyser`, and `Sample ID`.")
+        st.markdown("Upload a CSV containing your analyte data. Ensure it includes: `Material`, `Analyser`, and `Sample ID`.")
         uploaded_file = st.file_uploader("Choose a file to get started", type=["csv"], label_visibility="collapsed")
-
         if uploaded_file:
             df = pd.read_csv(uploaded_file)
             st.success("✅ File uploaded successfully!")
@@ -61,115 +54,192 @@ def upload_data():
             st.info("Awaiting file upload...")
             return None
 
-def calculate_lob(df):
-    analyte_columns = [df.columns[i] for i in range(8, len(df.columns), 3)] 
-    blank_data = df[df['Material'].str.lower() == 'blank']
-    results_lob = {
-        'Analyte': [],
-        'Blank Mean': [],
-        'Blank SD': [],
-        'LOB': []
-    }
+# # --- LOB ---
+# def calculate_lob(df):
+#     analyte_names = get_analyte_names(df)
+#     blank_data = df[df['Material'].str.lower() == 'blank']
+#     results_lob = {
+#         'Analyte': [],
+#         'Blank Mean': [],
+#         'Blank SD': [],
+#         'LOB': []
+#     }
 
-    for analyte in analyte_columns:
-        blank_vals = pd.to_numeric(blank_data[analyte], errors='coerce').dropna()
+#     for analyte in analyte_names:
+#         col_name = f'Calculated {analyte}'
+#         if col_name not in df.columns:
+#             continue
 
-        if blank_vals.empty:
-            continue
-        blank_mean = round(blank_vals.mean(), 5)
-        blank_sd = round(blank_vals.std(), 5)
-        lob = round(blank_mean + 1.645 * blank_sd, 5)
-        results_lob['Analyte'].append(analyte)
-        results_lob['Blank Mean'].append(blank_mean)
-        results_lob['Blank SD'].append(blank_sd)
-        results_lob['LOB'].append(lob)
+#         blank_vals = pd.to_numeric(blank_data[col_name], errors='coerce').dropna()
+#         if blank_vals.empty:
+#             continue
 
-    result_lob_df = pd.DataFrame(results_lob)
-    st.subheader("📊 Limit of Blank (LOB) Summary")
-    st.dataframe(result_lob_df)
+#         blank_mean = round(blank_vals.mean(), 5)
+#         blank_sd = round(blank_vals.std(), 5)
+#         lob = round(blank_mean + 1.645 * blank_sd, 5)
 
-def calculate_lod_loq_response(df):
-    analyte_columns = [df.columns[i] for i in range(8, len(df.columns), 3)] 
+#         results_lob['Analyte'].append(analyte)
+#         results_lob['Blank Mean'].append(blank_mean)
+#         results_lob['Blank SD'].append(blank_sd)
+#         results_lob['LOB'].append(lob)
+
+#     result_lob_df = pd.DataFrame(results_lob)
+#     st.subheader("📊 Limit of Blank (LOB) Summary")
+#     st.dataframe(result_lob_df)
+
+
+# --- LOD (response-based) ---
+def calculate_lod_response(df):
+    analyte_names = get_analyte_names(df)
+    blank_data = df[df['Material'].str.lower().str.contains('blank', na=False)]
     low_data = df[df['Material'].str.lower().str.contains('low', na=False)]
 
-    results_lod_loq_response = {
+    results = {
         'Analyte': [],
-        'Low SD (Response)': [],
+        'Blank SD (Response)': [],
         'LOD (Response)': []
     }
-    for analyte in analyte_columns:
+
+    for analyte in analyte_names:
         response_col = f'{analyte} Response'
         if response_col not in df.columns:
-            st.warning(f"⚠️ Raw response column not found for {analyte}: '{response_col}'")
+            st.warning(f"⚠️ Missing response column for {analyte}: '{response_col}'")
             continue
 
-        try:
-            response_vals = pd.to_numeric(low_data[response_col], errors='coerce')
-            valid = response_vals.notna()
-            if valid.sum() < 2:
-                st.warning(f"⚠️ Not enough valid data for {analyte}")
-                continue
-            mean_response = round(response_vals[valid].mean(), 5)
-            sd_response = round(response_vals[valid].std(), 5)
-            lod = round(mean_response + 3 * sd_response, 5)
-            loq = round(10 * sd_response, 5)
-            results_lod_loq_response['Analyte'].append(analyte)
-            results_lod_loq_response['Low SD (Response)'].append(sd_response)
-            results_lod_loq_response['LOD (Response)'].append(lod)
-            # results_lod_loq_response['LOQ (Response)'].append(loq)
+        vals = pd.to_numeric(low_data[response_col], errors='coerce').dropna()
+        if len(vals) < 2:
+            st.warning(f"⚠️ Not enough valid data for {analyte}")
+            continue
 
-        except Exception as e:
-            st.error(f"Error processing {analyte}: {e}")
-    result_lod_loq_response_df = pd.DataFrame(results_lod_loq_response)
+        sd = round(vals.std(), 5)
+        mean = round(vals.mean(), 5)
+        lod = round(mean + 3 * sd, 5)
+
+        results['Analyte'].append(analyte)
+        results['Blank SD (Response)'].append(sd)
+        results['LOD (Response)'].append(lod)
+
+    result_df = pd.DataFrame(results)
     st.subheader("📊 LOD Summary (Response-based)")
-    st.dataframe(result_lod_loq_response_df)
+    st.dataframe(result_df)
 
-def calculate_lod_loq_concentration(df):
-    analyte_columns = [df.columns[i] for i in range(8, len(df.columns), 3)] 
-    low_data = df[df['Material'].str.lower().str.contains('low', na=False)]
-    results_lod_loq_concentration = {
+
+# --- LOD (concentration-based) ---
+def calculate_lod_concentration(df):
+    analyte_names = get_analyte_names(df)
+    blank_data = df[df['Material'].str.lower().str.contains('blank', na=False)]    
+    results = {
         'Analyte': [],
-        'Low SD (Concentration)': [],
+        'Blank SD (Concentration)': [],
         'LOD (Concentration)': []
     }
 
-    for analyte in analyte_columns:
-        concentration_vals = pd.to_numeric(low_data[analyte], errors='coerce').dropna()
-
-        if concentration_vals.empty:
+    for analyte in analyte_names:
+        col_name = f'Calculated {analyte}'
+        if col_name not in df.columns:
             continue
 
-        mean_concentration = round(concentration_vals.mean(), 5)
-        sd_concentration = round(concentration_vals.std(), 5)
-        lod_concentration = round(mean_concentration + 3 * sd_concentration, 5)
-        loq_concentration = round(10 * sd_concentration, 5)
-        results_lod_loq_concentration['Analyte'].append(analyte)
-        results_lod_loq_concentration['Low SD (Concentration)'].append(sd_concentration)
-        results_lod_loq_concentration['LOD (Concentration)'].append(lod_concentration)
-        #results_lod_loq_concentration['LOQ (Concentration)'].append(loq_concentration)
+        vals = pd.to_numeric(blank_data[col_name], errors='coerce').dropna()
+        if len(vals) < 2:
+            continue
 
-    result_lod_loq_concentration_df = pd.DataFrame(results_lod_loq_concentration)
+        sd = round(vals.std(), 5)
+        mean = round(vals.mean(), 5)
+        lod = round(3 * sd, 5)
+
+        results['Analyte'].append(analyte)
+        results['Blank SD (Concentration)'].append(sd)
+        results['LOD (Concentration)'].append(lod)
+
+    result_df = pd.DataFrame(results)
     st.subheader("📊 LOD Summary (Concentration-based)")
-    st.dataframe(result_lod_loq_concentration_df)
+    st.dataframe(result_df)
 
-df = upload_data()  
-with st.expander("📊 Calculate Limit of Blank (LOB)", expanded=True):
+
+# --- LOQ (serial dilution-based) ---
+def extract_dilution_factor(name):
+    """Extract dilution factor from Sample Name, e.g., 'Diluted (1/66)' -> 66"""
+    match = re.search(r"\(1/(\d+)\)", name)
+    return int(match.group(1)) if match else np.nan
+
+def calculate_loq(df):
+    analyte_columns = get_analyte_names(df)
+    loq_data = df[df['Test'].str.lower() == 'loq']
+    blank_data = df[df['Material'].str.lower() == 'blank']
+    dilution_data = df[df['Sample Name'].str.lower().str.contains('dil', na=False)]
+
+    results = {
+        'Analyte': [],
+        'Dilution Level': [],
+        'Mean Concentration': [],
+        'SD': [],
+        'CV%': [],
+        'Pass LOQ Criteria': []
+    }
+
+    for analyte in analyte_columns:
+        conc_col = f'Calculated {analyte}'
+        std_col = f'Expected {analyte}'
+        if conc_col not in df.columns or std_col not in df.columns:
+            continue
+        blank_mean = pd.to_numeric(blank_data[conc_col], errors='coerce').mean()
+
+        for level in dilution_data['Sample Name'].unique():
+            level_data = dilution_data[dilution_data['Sample Name'] == level]
+
+            calc_conc = pd.to_numeric(level_data[conc_col], errors='coerce')
+
+            nominal = pd.to_numeric(level_data[std_col], errors='coerce')
+
+            if len(calc_conc.dropna()) < 2 or len(nominal.dropna()) == 0:
+                continue
+            mean_conc = calc_conc.mean()
+            std_dev = calc_conc.std(ddof=1)  
+            cv = (std_dev / mean_conc) * 100 if mean_conc != 0 else np.nan
+            acc = (mean_conc - nominal.mean()) / nominal.mean() * 100
+
+            passed = (
+                mean_conc > 5 * blank_mean
+                and abs(acc) <= 20
+                and cv <= 20
+            )
+
+            results['Analyte'].append(analyte)
+            results['Dilution Level'].append(level)
+            results['Mean Concentration'].append(round(mean_conc, 4))
+            results['SD'].append(round(std_dev, 4))
+            results['CV%'].append(round(cv, 2))
+            results['Pass LOQ Criteria'].append("✅" if passed else "❌")
+
+    st.subheader("📊 Limit of Quantification (LOQ) Assessment")
+    st.dataframe(pd.DataFrame(results))
+
+# --- Run sections ---
+df = upload_data()
+
+# with st.expander("📊 Calculate Limit of Blank (LOB)", expanded=True):
+#     if df is not None:
+#         calculate_lob(df)
+
+with st.expander("📊 Calculate Limit of Detection (LOD) (Response-based)", expanded=False):
     if df is not None:
-        calculate_lob(df)
-with st.expander("📊 Calculate Limit of Detection (LOD) (Response-based)", expanded=True):
+        calculate_lod_response(df)
+
+with st.expander("📊 Calculate Limit of Detection (LOD) (Concentration-based)", expanded=False):
     if df is not None:
-        calculate_lod_loq_response(df)
-with st.expander("📊 Calculate Limit of Detection (LOD) (Concentration-based)", expanded=True):
+        calculate_lod_concentration(df)
+
+with st.expander("📊 Calculate Limit of Quantification (LOQ)", expanded=True):
     if df is not None:
-        calculate_lod_loq_concentration(df)
+        calculate_loq(df)
 
 with st.expander("📚 References"):
     st.markdown("""
-    **Armbruster, D.A. and Pry, T. (2008)**, *Limit of Blank, Limit of Detection and Limit of Quantitation*, The Clinical biochemist. Reviews, 29 Suppl 1(Suppl 1), S49–S52
-    (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2556583/)
+    **Armbruster, D.A. and Pry, T. (2008)**, *Limit of Blank, Limit of Detection and Limit of Quantitation*, [Clinical Biochemist Reviews](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2556583/)
     """)
-    st.markdown("""Dolan, J. W. (2013, November). What's the problem with the LLOQ? — A case study. LCGC Europe, 26(11), pp. 926–931. (https://www.chromatographyonline.com/view/whats-problem-lloq-case-study-1)""")
     st.markdown("""
-    **Pum, J. (2019)**, *Chapter Six - A practical guide to validation and verification of analytical methods in the clinical laboratory*, Advances in Clinical Chemistry: Volume 90, pp. 215-281.
-    (https://www.sciencedirect.com/science/article/pii/S006524231930006X)
+    **Dolan, J. W. (2013)**, *What's the problem with the LLOQ?*, [LCGC Europe](https://www.chromatographyonline.com/view/whats-problem-lloq-case-study-1)
+    """)
+    st.markdown("""
+    **Pum, J. (2019)**, *A practical guide to validation and verification of analytical methods*, [ScienceDirect](https://www.sciencedirect.com/science/article/pii/S006524231930006X)
     """)

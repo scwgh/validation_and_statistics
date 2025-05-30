@@ -42,7 +42,7 @@ test_options = [
     "Two-Way Crossed ANOVA",
     "Two-Way Nested ANOVA",
     "Multi-Way ANOVA",    
-    "Bland-Altmann Analysis",
+    "Bland-Altman Analysis",
     "Deming Regression",
     "Passing Bablok Regression",
 ]
@@ -51,7 +51,7 @@ module_map = {
     "Two-Way Crossed ANOVA": "two_way_crossed",
     "Two-Way Nested ANOVA": "two_way_nested",
     "Multi-Way ANOVA": "multi_way_anova",
-    "Bland-Altmann Analysis": "bland_altmann",
+    "Bland-Altman Analysis": "bland_altman",
     "Deming Regression": "deming_regression",
     "Passing Bablok Regression": "passing_bablok",
 }

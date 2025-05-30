@@ -8,6 +8,8 @@ from plotly.subplots import make_subplots
 from itertools import combinations
 from datetime import datetime
 
+units_list = ["nmol/L","μmol/L", "mmol/L", "mol/L", "mg/dL", "g/L", "ng/mL", "μmol/mmol Creatinine"]
+
 def apply_app_styling():
     with open("styles.css") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)

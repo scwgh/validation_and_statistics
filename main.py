@@ -6,8 +6,6 @@ from datetime import datetime
 import streamlit.components.v1 as components
 from utils import apply_app_styling, show_footer
 
-admin_password = st.secrets["admin"]["password"]
-
 st.set_page_config(
     page_title="Validation and Statistical Analysis App",
     page_icon=":computer:",

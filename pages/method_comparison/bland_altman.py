@@ -60,35 +60,39 @@ def run():
         vals1 = df1[selected_analyte][:min_len]
         vals2 = df2[selected_analyte][:min_len]
         means = (vals1 + vals2) / 2
-        diffs = vals1 - vals2
-        percent_diffs = (diffs / ((vals1 + vals2) / 2).replace(0, np.nan)) * 100
-        Q1, Q3 = np.percentile(diffs, [25, 75])
+                # Detect outliers based on initial diffs
+        diffs_initial = vals1 - vals2
+        Q1, Q3 = np.percentile(diffs_initial, [25, 75])
         IQR = Q3 - Q1
         lower_bound = Q1 - 1.5 * IQR
         upper_bound = Q3 + 1.5 * IQR
-        is_outlier = (diffs < lower_bound) | (diffs > upper_bound)
+        is_outlier = (diffs_initial < lower_bound) | (diffs_initial > upper_bound)
 
         with st.expander(":gear: Outlier Settings", expanded=True):
             st.markdown(""" """)
             if not is_outlier.any():
                 st.info("✅ No outliers detected.")
+                valid_indices = diffs_initial.index
             else:
                 st.error("⚠️ Outliers detected.")
-                if is_outlier.any():
-                    exclude_outliers = st.checkbox("Exclude outliers from analysis", value=False)
-                    if exclude_outliers:
-                        valid_indices = diffs[(diffs >= lower_bound) & (diffs <= upper_bound)].index
-                        vals1, vals2 = vals1.loc[valid_indices], vals2.loc[valid_indices]
-                        outliers = diffs[is_outlier]
-                        outlier_ids = df1.loc[outliers.index, 'Sample ID'].tolist()
-                        if outlier_ids:
-                            st.warning(f"⚠️ Outliers excluded: Sample IDs: {', '.join(map(str, outlier_ids))}")
-
+                exclude_outliers = st.checkbox("Exclude outliers from analysis", value=False)
+                if exclude_outliers:
+                    valid_indices = diffs_initial[~is_outlier].index
+                    outlier_ids = df1.loc[is_outlier, 'Sample ID'].tolist()
+                    if outlier_ids:
+                        st.warning(f"⚠️ Outliers excluded: Sample IDs: {', '.join(map(str, outlier_ids))}")
                 else:
-                    valid_indices = diffs.index
-                    st.info("No outliers excluded from analysis.")
-        diffs = vals1 - vals2
+                    valid_indices = diffs_initial.index
+
+        # Filter data
+        vals1 = vals1.loc[valid_indices]
+        vals2 = vals2.loc[valid_indices]
+
+        # Now recalculate these AFTER outlier filtering
         means = (vals1 + vals2) / 2
+        diffs = vals1 - vals2
+        percent_diffs = (diffs / ((vals1 + vals2) / 2).replace(0, np.nan)) * 100
+
         mean_diff = np.mean(diffs)
         std_diff = np.std(diffs, ddof=1)
         loa_upper = mean_diff + 1.96 * std_diff

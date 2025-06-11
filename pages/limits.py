@@ -25,13 +25,36 @@ with st.expander("📘 What are limits?", expanded=True):
     st.markdown("""**LOB**, or **Limit of Blank**, is the highest concentration of analyte that is likely to be found in a blank sample.""")
     st.latex(r"\text{LOB} = \mu_{\text{blank}} + 1.645 \cdot \sigma_{\text{blank}}")
     st.markdown("""For the purpose of these analyses, LOB is not included. """)
-    st.markdown("""**LOQ**, or **Limit of Quantification**, is the lowest concentration at which the analyte can be quantitatively detected with acceptable precision and accuracy.""")
+    st.markdown("""
+    **LOQ**, or **Limit of Quantification**, is the lowest concentration at which an analyte can be quantitatively detected with acceptable **precision** and **accuracy**.
+
+    The **Lower Limit of Quantification (LLOQ)** defines the assay's sensitivity and determines the lowest end of the measuring range.
+
+    - If the concentration of the lowest non-zero calibrator meets clinical requirements and has an IQC material available, the LLOQ may be determined through inter-assay imprecision and accuracy studies.
+    - Otherwise, calculate the LLOQ using **serial dilutions**, as described below.
+    - Alternatively, LOQ may be estimated using **repeated low concentration samples**.
+
+    """)
     st.latex(r"\text{LOQ} = 10 \cdot \sigma_{\text{low concentration sample}}")
+
 
 # --- Instructions ---
 with st.expander("📘 Instructions"):
     st.markdown("""**For LOB analysis:** Upload a CSV file with repeated blank samples labeled in the `Material` column.""")
     st.markdown("""**For LOD/LOQ analysis:** Upload a CSV file with repeated low concentration samples labeled (e.g., LowConc1), and ensure analyte columns contain numeric values.""")
+    st.markdown("""
+    ### 🔬 To calculate LOQ using serial dilutions:
+
+    - Perform **serial dilution** of the low-level calibrator to produce multiple intermediate concentrations at the low end of the standard curve.  
+    - Conduct **5 replicate extractions** of:
+    - The low-level calibrator, and  
+    - Each calibrator dilution.  
+    - **Inject the extracts** across at least **3 separate runs** and record:
+        - Analyte response (e.g., peak area), and  
+        - Measured concentration.  
+        - Calculate the **mean response** at each concentration (this may be used to plot a **precision profile**).  
+        - Calculate the **mean percentage accuracy** and **coefficient of variation (CV, %)** of the replicates compared to the nominal concentration.
+    """)
 
 def get_analyte_names(df):
     pattern = r'Calculated (.+)'  # Look for 'Calculated <Analyte>'
@@ -54,13 +77,14 @@ def upload_data():
             st.info("Awaiting file upload...")
             return None
 
+
 # # --- LOB ---
 # def calculate_lob(df):
 #     analyte_names = get_analyte_names(df)
 #     blank_data = df[df['Material'].str.lower() == 'blank']
 #     results_lob = {
 #         'Analyte': [],
-#         'Blank Mean': [],
+#         'Blank Mean': [
 #         'Blank SD': [],
 #         'LOB': []
 #     }
@@ -155,6 +179,51 @@ def calculate_lod_concentration(df):
     st.subheader("📊 LOD Summary (Concentration-based)")
     st.dataframe(result_df)
 
+# --- LOQ (low concentration-based) ---
+def calculate_loq_low_concentration(df):
+    analyte_columns = get_analyte_names(df)
+    low_data = df[df['Material'].str.lower().str.contains('low', na=False)]
+
+    results = {
+        'Analyte': [],
+        'Mean Concentration': [],
+        'Mean Response': [],
+        'SD': [],
+        'CV%': [],
+        'LOQ (10 × SD)': []
+    }
+
+    for analyte in analyte_columns:
+        conc_col = f'Calculated {analyte}'
+        if conc_col not in df.columns:
+            continue
+
+        response_col = f'{analyte} Response'
+        if response_col not in df.columns:
+            continue
+
+        values = pd.to_numeric(low_data[conc_col], errors='coerce').dropna()
+        if len(values) < 2:
+            continue
+
+        response = pd.to_numeric(low_data[response_col], errors='coerce').dropna()
+
+        mean_val = values.mean()
+        mean_response = response.mean()
+        std_val = values.std(ddof=1)
+        cv = (std_val / mean_val) * 100 if mean_val != 0 else np.nan
+        loq = 10 * std_val
+
+        results['Analyte'].append(analyte)
+        results['Mean Concentration'].append(round(mean_val, 4))
+        results['Mean Response'].append(round(mean_response, 2))
+        results['SD'].append(round(std_val, 4))
+        results['CV%'].append(round(cv, 2))
+        results['LOQ (10 × SD)'].append(round(loq, 4))
+
+    st.subheader("📊 LOQ Based on Low Concentration Samples")
+    st.dataframe(pd.DataFrame(results))
+
 
 # --- LOQ (serial dilution-based) ---
 def extract_dilution_factor(name):
@@ -162,7 +231,7 @@ def extract_dilution_factor(name):
     match = re.search(r"\(1/(\d+)\)", name)
     return int(match.group(1)) if match else np.nan
 
-def calculate_loq(df):
+def calculate_loq_dilution(df):
     analyte_columns = get_analyte_names(df)
     loq_data = df[df['Test'].str.lower() == 'loq']
     blank_data = df[df['Material'].str.lower() == 'blank']
@@ -172,15 +241,19 @@ def calculate_loq(df):
         'Analyte': [],
         'Dilution Level': [],
         'Mean Concentration': [],
+        'Mean Response': [],
         'SD': [],
         'CV%': [],
         'Pass LOQ Criteria': []
     }
 
     for analyte in analyte_columns:
+        response_col = f'{analyte} Response'
         conc_col = f'Calculated {analyte}'
         std_col = f'Expected {analyte}'
         if conc_col not in df.columns or std_col not in df.columns:
+            continue
+        if response_col not in df.columns:
             continue
         blank_mean = pd.to_numeric(blank_data[conc_col], errors='coerce').mean()
 
@@ -189,11 +262,14 @@ def calculate_loq(df):
 
             calc_conc = pd.to_numeric(level_data[conc_col], errors='coerce')
 
+            response = pd.to_numeric(level_data[response_col], errors='coerce').dropna()
+
             nominal = pd.to_numeric(level_data[std_col], errors='coerce')
 
             if len(calc_conc.dropna()) < 2 or len(nominal.dropna()) == 0:
                 continue
             mean_conc = calc_conc.mean()
+            mean_response = response.mean()
             std_dev = calc_conc.std(ddof=1)  
             cv = (std_dev / mean_conc) * 100 if mean_conc != 0 else np.nan
             acc = (mean_conc - nominal.mean()) / nominal.mean() * 100
@@ -207,12 +283,14 @@ def calculate_loq(df):
             results['Analyte'].append(analyte)
             results['Dilution Level'].append(level)
             results['Mean Concentration'].append(round(mean_conc, 4))
+            results['Mean Response'].append(round(mean_response, 2))
             results['SD'].append(round(std_dev, 4))
             results['CV%'].append(round(cv, 2))
             results['Pass LOQ Criteria'].append("✅" if passed else "❌")
 
     st.subheader("📊 Limit of Quantification (LOQ) Assessment")
     st.dataframe(pd.DataFrame(results))
+    
 
 # --- Run sections ---
 df = upload_data()
@@ -231,7 +309,17 @@ with st.expander("📊 Calculate Limit of Detection (LOD) (Concentration-based)"
 
 with st.expander("📊 Calculate Limit of Quantification (LOQ)", expanded=True):
     if df is not None:
-        calculate_loq(df)
+        loq_method = st.radio(
+            "Choose LOQ calculation method:",
+            options=["Use Serial Dilution", "Use Low Concentration Samples"],
+            horizontal=True
+        )
+
+        if loq_method == "Use Serial Dilution":
+            calculate_loq_dilution(df)
+        elif loq_method == "Use Low Concentration Samples":
+            calculate_loq_low_concentration(df)
+
 
 with st.expander("📚 References"):
     st.markdown("""

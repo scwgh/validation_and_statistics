@@ -27,21 +27,16 @@ with st.expander("📘 What are limits?", expanded=True):
     st.markdown("""For the purpose of these analyses, LOB is not included. """)
     st.markdown("""
     **LOQ**, or **Limit of Quantification**, is the lowest concentration at which an analyte can be quantitatively detected with acceptable **precision** and **accuracy**.
-
-    The **Lower Limit of Quantification (LLOQ)** defines the assay's sensitivity and determines the lowest end of the measuring range.
-
-    - If the concentration of the lowest non-zero calibrator meets clinical requirements and has an IQC material available, the LLOQ may be determined through inter-assay imprecision and accuracy studies.
-    - Otherwise, calculate the LLOQ using **serial dilutions**, as described below.
-    - Alternatively, LOQ may be estimated using **repeated low concentration samples**.
-
+    \n If the concentration of the lowest non-zero calibrator meets clinical requirements and has an IQC material available, the LLOQ may be determined through inter-assay imprecision and accuracy studies.
+    \n LOQ may be calculated using **serial dilutions**, as described below; or using **low concentration samples**. For example:
     """)
     st.latex(r"\text{LOQ} = 10 \cdot \sigma_{\text{low concentration sample}}")
 
 
 # --- Instructions ---
 with st.expander("📘 Instructions"):
-    st.markdown("""**For LOB analysis:** Upload a CSV file with repeated blank samples labeled in the `Material` column.""")
-    st.markdown("""**For LOD/LOQ analysis:** Upload a CSV file with repeated low concentration samples labeled (e.g., LowConc1), and ensure analyte columns contain numeric values.""")
+    # st.markdown("""**For LOB analysis:** Upload a CSV file with repeated blank samples labeled in the `Material` column.""")
+    st.markdown("""**For LOD/LOQ analysis:** Upload a CSV file with repeated low concentration samples labeled (e.g., LowConc1), and ensure analyte columns contain numeric values. If you are using a serial dilution to calculate LOQ., please label the dilution in the 'Sample Name' column using the following format: *** Dilution (1 in x ) *** """)
     st.markdown("""
     ### 🔬 To calculate LOQ using serial dilutions:
 

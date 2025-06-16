@@ -334,7 +334,7 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
                 fig.update_xaxes(
                     showticklabels=True,
                     tickangle=45,
-                    tickformat="%b-%y",  
+                    tickformat="%d-%m-%Y",  
                     row=r,
                     col=c
                 )

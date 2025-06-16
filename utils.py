@@ -8,7 +8,25 @@ from plotly.subplots import make_subplots
 from itertools import combinations
 from datetime import datetime
 
-units_list = ["nmol/L","μmol/L", "mmol/L", "mol/L", "mg/dL", "g/L", "ng/mL", "μmol/mmol Creatinine"]
+units_list = [
+    "nmol/L", "μmol/L", "mmol/L", "mol/L",        # molar concentration
+    "mg/dL", "g/dL", "g/L", "kg/L",               # mass/volume
+    "ng/mL", "pg/mL", "μg/mL", "μg/dL", "μg/L",    # small mass/volume
+    "IU/L", "mIU/L", "U/L",                       # enzyme and hormone units
+    "cells/μL", "cells/mL",                       # cell count
+    "mEq/L",                                      # electrolytes
+    "ng/g", "μg/g",                               # mass/mass (e.g., stool, tissue)
+    "μmol/mmol Creatinine", "mg/g Creatinine",    # ratio to creatinine
+    "ng/mg protein",                              # normalized to protein
+    "%", "‰",                                     # percentages, per mille
+    "mg/L", "μg/m3",                              # general mass/volume or air conc.
+    "mOsm/kg", "Osm/kg",                          # osmolality
+    "mOsm/L",                                      # osmolarity
+    "μkat/L",                                     # katal unit (SI for enzyme activity)
+    "copies/mL",                                  # viral/bacterial load
+    "ng/dL", "pg/dL",                             # hormones (e.g., T3/T4)
+    "ng/μL", "μg/μL",                             # high concentration in small vol
+]
 
 def apply_app_styling():
     with open("styles.css") as f:

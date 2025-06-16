@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
+from utils import apply_app_styling, units_list
 
 def run(df):
     if df is not None:
@@ -12,7 +13,7 @@ def run(df):
 
         units = st.selectbox(
             "Select Units for Analytes",
-            options=["μmol/L", "mmol/L", "mg/dL", "g/L", "ng/mL"], 
+            options=units_list, 
             index=0
         )
 

@@ -1,6 +1,6 @@
 import streamlit as st
 import importlib
-from utils import apply_app_styling
+from utils import apply_app_styling, units_list
 
 # Page setup
 st.set_page_config(

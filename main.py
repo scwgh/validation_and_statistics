@@ -58,7 +58,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Sidebar
 st.sidebar.header("🔍 Validation Processes")
 st.sidebar.info("Select a validation process from the sidebar above.")
 
@@ -102,7 +101,6 @@ st.sidebar.info("Select a validation process from the sidebar above.")
 #     </style>
 # """, unsafe_allow_html=True)
 
-# Main Title
 st.markdown(
     f"""
     <h2 style='text-align: center; color: #2C3E50;'>Welcome to the Validation and Statistical Analysis App <span class='wave'>👋</span></h2>
@@ -113,8 +111,6 @@ st.markdown(
 with st.spinner("Loading the analysis tools... Please wait!"):
     st.success("Analysis tools loaded successfully! Let's get started with your validation analysis! 🎉")
 
-
-# About section in card style
 with st.container():
     st.markdown("""
 
@@ -156,7 +152,6 @@ with st.container():
     """)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Data Upload Section inside an Expander
 with st.expander("📂 Data Upload and Templates", expanded=False):
     st.markdown("""
     
@@ -172,7 +167,6 @@ with st.expander("📂 Data Upload and Templates", expanded=False):
     """)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Modules Section inside an Expander
 with st.expander("📖 Available Modules", expanded=False):
     st.markdown("""
     Use the sidebar to navigate the comprehensive platform offering validation and verification analyses for laboratory settings.

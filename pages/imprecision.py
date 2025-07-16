@@ -148,7 +148,7 @@ with st.expander("📘 Instructions:", expanded=False):
     - Use the toggle in the sidebar to enable or disable rule overlays, including Westgard rules and outlier identification using Grubbs` test.
     """)
 
-def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, exclude_westgard=False, units="μmol/L"):
+def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, exclude_westgard=False, units=units_list):
     results = []
     outlier_indices = []
     filtered_data = df.copy() 
@@ -574,7 +574,7 @@ if uploaded_file:
             }
 
         with st.spinner("Analyzing..."):
-            intra_well_df, intra_batch_df, inter_batch_df, analyser_comparison, filtered_data, outlier_indices = precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, units=units)
+            intra_well_df, intra_batch_df, inter_batch_df, analyser_comparison, filtered_data, outlier_indices = precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, units=units_list)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
         # --- Results Output  ---

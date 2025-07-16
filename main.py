@@ -60,6 +60,7 @@ st.markdown("""
 
 st.sidebar.header("🔍 Validation Processes")
 st.sidebar.info("Select a validation process from the sidebar above.")
+st.balloons()
 
 # # Greeting logic
 # hour = datetime.now().hour

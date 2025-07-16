@@ -159,13 +159,6 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
     subplot_titles = [f"{material} - {analyzer}" for (material, analyzer) in inter_batch_groups.groups.keys()]
     num_plots = len(subplot_titles)
 
-    # plot_layout = st.radio(
-    #     "Plot Layout", 
-    #     ["Two Columns", "Single Column"], 
-    #     index=0,
-    #     horizontal=True
-    # )
-
     if num_plots > 0:
         fig = make_subplots(
             rows=(num_plots + 1) // 2,
@@ -183,7 +176,7 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
     # --- Plot All Data Points with Error Bars (Including Westgard Alerts) ---
     for (material, analyzer), group in qc_df.groupby(['Material', 'Analyser']):
         group = group.copy()
-        group = group[group['Test'] != "Intra_Well_Imprecision"]  # <-- Add this line
+        group = group[group['Test'] != "Intra_Well_Imprecision"] 
         group['Date'] = pd.to_datetime(group['Date'], errors='coerce', dayfirst=True)
         group = group.dropna(subset=['Date', selected_analyte, 'Analyser', 'Material'])
 
@@ -199,7 +192,6 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
         legend_group_sd = 'SD'
         legend_group_outlier = 'Outlier'
 
-        # Add traces to the plot
         fig.add_trace(go.Scatter(
             x=group['Date'], 
             y=group[selected_analyte], 
@@ -219,8 +211,6 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
         fig.update_xaxes(title_text="Date", row=row, col=col)
         fig.update_yaxes(title_text=f"Concentration ({units})", row=row, col=col)
 
-
-        # Add Error Bars (Mean ± SD)
         fig.add_trace(go.Scatter(
             x=group['Date'], y=[overall_mean] * len(group),
             mode='lines', line=dict(color='yellowgreen', dash='solid'),
@@ -252,7 +242,6 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
             hovertemplate="Mean ± 3 SD<br>"
         ), row=row, col=col)
 
-        # --- Apply Westgard Alerts and Optionally Exclude ---
         westgard_violations = []
         rule_alerts = check_westgard_rules(group[selected_analyte].tolist(), overall_mean, sd, rules_enabled)
 
@@ -326,7 +315,6 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
             margin=dict(t=50, l=30, r=30, b=30)
         )
         
-        # Number of rows in your subplot grid
         num_rows = (num_plots + 1) // 2
 
         for r in range(1, num_rows + 1):
@@ -341,7 +329,6 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("No data available for plotting.")
-    # --- End of Plotting ---
 
     # --- Imprecision Calculations ---
     excluded_indices = set()
@@ -355,12 +342,8 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
 
             if group.empty or len(group) < 2:
                 continue
-
-            # ✅ Calculate initial mean and SD BEFORE exclusion
             initial_mean = group[analyte].mean()
             initial_sd = group[analyte].std()
-
-            # ✅ Apply Westgard Exclusion FIRST (before Grubbs')
             if rules_enabled and exclude_westgard:
                 westgard_violations = [i for i, _ in check_westgard_rules(group[analyte].tolist(), initial_mean, initial_sd, rules_enabled)]
                 if westgard_violations:
@@ -370,7 +353,6 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
             if group.empty or len(group) < 2:
                 continue
 
-            # ✅ Apply Grubbs' test and optionally exclude outliers
             if grubbs_outliers.get("perform_grubbs"):
                 outlier_alerts = grubbs_test(group[analyte])
                 outlier_indices = outlier_alerts["Outlier Indices"]
@@ -380,7 +362,6 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
             if group.empty or len(group) < 2:
                 continue 
 
-            # ✅ Recalculate mean and SD after exclusions
             overall_mean = round(group[analyte].mean(), 2)
             sd = round(group[analyte].std(), 2)
             nobs = group[analyte].count()
@@ -429,7 +410,6 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
             var1, var2 = np.var(group1, ddof=1), np.var(group2, ddof=1)
             n1, n2 = len(group1), len(group2)
 
-            # Determine which variance is larger to set up F = larger / smaller
             if var1 >= var2:
                 f_statistic = var1 / var2
                 df1, df2 = n1 - 1, n2 - 1
@@ -437,10 +417,7 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
                 f_statistic = var2 / var1
                 df1, df2 = n2 - 1, n1 - 1
 
-            # One-tailed p-value: probability of F >= f_statistic
             p_value = 1 - f.cdf(f_statistic, df1, df2)
-
-            # F critical (right tail, alpha = 0.05)
             alpha = 0.05
             f_critical = f.ppf(1 - alpha, df1, df2)
 
@@ -495,7 +472,6 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
         filtered_data, 
         outlier_indices 
     )
-
 
 # --- File Upload ---
 with st.expander("📤 Upload Your CSV File", expanded=True):
@@ -574,7 +550,7 @@ if uploaded_file:
             }
 
         with st.spinner("Analyzing..."):
-            intra_well_df, intra_batch_df, inter_batch_df, analyser_comparison, filtered_data, outlier_indices = precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, units=units_list)
+            intra_well_df, intra_batch_df, inter_batch_df, analyser_comparison, filtered_data, outlier_indices = precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, units=units)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
         # --- Results Output  ---

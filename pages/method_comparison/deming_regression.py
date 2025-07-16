@@ -33,63 +33,69 @@ def run():
         df = pd.read_csv(uploaded_file) if uploaded_file else None
 
     if df is not None:
-        # Step 1: Analyzer selection
-        analyzers = df['Analyser'].dropna().unique()
-        if len(analyzers) < 2:
-            st.error("❌ Need at least two analyzers.")
-        else:
-            analyzer_1 = st.selectbox("Select Analyzer 1", analyzers, index=0)
-            analyzer_2 = st.selectbox("Select Analyzer 2", analyzers, index=1)
-
-            if analyzer_1 == analyzer_2:
-                st.warning("⚠ Please select two different analyzers.")
+        with st.expander("⚙️ Settings: Selection and Outlier Detection", expanded=True):
+            # Step 1: Analyzer selection
+            analyzers = df['Analyser'].dropna().unique()
+            if len(analyzers) < 2:
+                st.error("❌ Need at least two analyzers.")
             else:
-                # Step 2: Material selection
-                valid_materials = ["EQA", "Patient"]
-                material_options = df['Material'].dropna().unique()
-                filtered_materials = [m for m in material_options if m in valid_materials]
-                selected_material = st.selectbox(
-                    "Select Material Type",
-                    options=filtered_materials,
-                    index=0 if "EQA" in filtered_materials else 0
-                )
+                analyzer_1 = st.selectbox("Select Analyzer 1", analyzers, index=0)
+                analyzer_2 = st.selectbox("Select Analyzer 2", analyzers, index=1)
 
-                # Step 3: Analyte selection
-                analytes = [col for col in df.columns if col not in ['Date', 'Test', 'Material', 'Analyser', 'Date', 'Sample ID', 'Batch ID', 'Lot Number']]
-                selected_analytes = st.multiselect("Select Analytes", analytes)
+                if analyzer_1 == analyzer_2:
+                    st.warning("⚠ Please select two different analyzers.")
+                else:
+                    # Step 2: Material selection
+                    valid_materials = ["EQA", "Patient"]
+                    material_options = df['Material'].dropna().unique()
+                    filtered_materials = [m for m in material_options if m in valid_materials]
+                    selected_material = st.selectbox(
+                        "Select Material Type",
+                        options=filtered_materials,
+                        index=0 if "EQA" in filtered_materials else 0
+                    )
 
-                # Step 4: Units selection
-                units = st.selectbox(
-                    "Select Units for Analytes",
-                    options=units_list,
-                    index=0
-                )
+                    # Step 3: Analyte selection
+                    analytes = [col for col in df.columns if col not in ['Date', 'Test', 'Material', 'Analyser', 'Date', 'Sample ID', 'Batch ID', 'Lot Number']]
+                    selected_analytes = st.multiselect("Select Analytes", analytes)
 
-                # Step 5: Select Confidence Interval via Slider
-                confidence_level = st.slider(
-                    "Select Confidence Level (%)",
-                    min_value=80,
-                    max_value=99,
-                    value=95,
-                    step=1
-                )
-                alpha = 1 - confidence_level / 100
+                    # Step 4: Units selection
+                    units = st.selectbox(
+                        "🔎 Select Units for Analytes",
+                        options=units_list,
+                        index=0
+                    )
 
-                # Step 5b: Outlier exclusion option
-                exclude_outliers = st.checkbox(
-                    "Exclude outliers (>3 SD from mean difference)",
-                    value=False,
-                    help="Remove data points where the difference between methods is >3 standard deviations from the mean difference"
-                )
+                    # Step 5: Select Confidence Interval via Slider
+                    confidence_level = st.slider(
+                        "😎 Select Confidence Level (%)",
+                        min_value=80,
+                        max_value=99,
+                        value=95,
+                        step=1
+                    )
+                    alpha = 1 - confidence_level / 100
 
-                # Step 6: Run Deming Regression for selected analytes
+                    # Step 5b: Outlier exclusion option
+                    exclude_outliers = st.checkbox(
+                        "❌ Exclude outliers (>3 SD from mean difference)",
+                        value=False,
+                        help="Remove data points where the difference between methods is >3 standard deviations from the mean difference"
+                    )
+
+        # Step 6: Run Analysis Button
+        if st.button("🔍 Run Deming Regression Analysis", type="primary"):
+            if not selected_analytes:
+                st.error("❌ Please select at least one analyte to analyze.")
+            else:
+                # Step 7: Run Deming Regression for selected analytes
                 all_results = []
                 for selected_analyte in selected_analytes:
                     result = deming_regression_analysis(df, analyzer_1, analyzer_2, selected_material, units, selected_analyte, confidence_level, alpha, exclude_outliers)
                     if result:
                         all_results.extend(result)
 
-                # Step 7: Display results in combined summary table
+                # Step 8: Display results in combined summary table
                 if all_results:
                     results_df = pd.DataFrame(all_results)
                     st.markdown("### 📊 Deming Regression Statistical Summary ")
@@ -146,8 +152,6 @@ def deming_regression_analysis(df, analyzer_1, analyzer_2, selected_material, un
             # Remove outliers
             x = x[~outlier_mask]
             y = y[~outlier_mask]
-            
-            # Check if we still have enough data
             if len(x) < 2:
                 st.warning(f"⚠ Too many outliers removed for {selected_analyte}. Only {len(x)} points remaining.")
                 return None
@@ -165,52 +169,35 @@ def deming_regression_analysis(df, analyzer_1, analyzer_2, selected_material, un
     output = odr.run()
 
     slope, intercept = output.beta
-    # USE CORRECT STANDARD ERRORS FROM ODR OUTPUT
     se_slope, se_intercept = output.sd_beta
-    
-    # Calculate R-squared
     y_pred = slope * x + intercept
     ss_res = np.sum((y - y_pred) ** 2)
     ss_tot = np.sum((y - np.mean(y)) ** 2)
     r_squared = 1 - ss_res / ss_tot if ss_tot != 0 else np.nan
-
-    # Degrees of freedom for Deming regression
     dof = len(x) - 2
-    
-    # t-value for selected confidence interval
     t_val = stats.t.ppf(1 - alpha / 2, dof)
-    
-    # Confidence intervals
     ci_slope = t_val * se_slope
     ci_intercept = t_val * se_intercept
-    
-    # Statistical test: H0: slope = 1 vs H1: slope ≠ 1
     t_stat = (slope - 1) / se_slope
     p_val = 2 * (1 - stats.t.cdf(abs(t_stat), dof))
     
-    # Consistent outcome determination
     slope_lower = slope - ci_slope
     slope_upper = slope + ci_slope
     
-    # Check if 1 is within confidence interval
     slope_ci_contains_1 = slope_lower <= 1 <= slope_upper
     
-    # Determine outcome consistently
     if p_val == 0.0:
-        outcome = ""  # Don't print outcome when p-value is exactly 0.0
+        outcome = ""  
     elif p_val <= 0.05:
         outcome = "Statistically significant bias"
     else:
         outcome = "No statistically significant bias"
-    
-    # Additional check - should be consistent with p-value (only if p_val != 0.0)
     if p_val != 0.0:
         if slope_ci_contains_1 and p_val > 0.05:
             outcome = "No statistically significant bias"
         elif not slope_ci_contains_1 and p_val <= 0.05:
             outcome = "Statistically significant bias"
         else:
-            # If inconsistent, trust the p-value
             outcome = "Statistically significant bias" if p_val <= 0.05 else "No statistically significant bias"
 
     results_list.append({
@@ -232,71 +219,185 @@ def deming_regression_analysis(df, analyzer_1, analyzer_2, selected_material, un
         'Outcome': outcome
     })
     
+    # Create plot section
+    st.markdown(f"### 📈 Deming Regression Plot: {selected_analyte}")
+    
     line_name = f"y = {slope:.2f}x + {intercept:.2f} (R² = {r_squared:.4f})"
     fig = go.Figure()
 
-    # Scatter plot of the original data points
     fig.add_trace(go.Scatter(
         x=x,
         y=y,
         mode='markers',
         name='Samples',
-        marker=dict(color='steelblue'),
+        marker=dict(color='steelblue', size=8),
         hovertemplate=f"{analyzer_1}: %{{x:.2f}} {units}<br>{analyzer_2}: %{{y:.2f}} {units}<extra></extra>"
     ))
 
-    # Regression line
     x_line = np.linspace(min(x), max(x), 100)
     y_line = slope * x_line + intercept
+
+    # FIXED: Proper confidence bands calculation for Deming regression
+    # Get the covariance matrix from ODR output
+    cov_matrix = output.cov_beta
+    
+    # Calculate confidence bands using bootstrap approach for better accuracy
+    n_bootstrap = 1000
+    y_bootstrap = np.zeros((n_bootstrap, len(x_line)))
+    
+    # Generate bootstrap samples
+    for i in range(n_bootstrap):
+        # Bootstrap sample indices
+        bootstrap_indices = np.random.choice(len(x), size=len(x), replace=True)
+        x_boot = x[bootstrap_indices]
+        y_boot = y[bootstrap_indices]
+        
+        # Fit Deming regression on bootstrap sample
+        try:
+            odr_data_boot = RealData(x_boot, y_boot)
+            odr_boot = ODR(odr_data_boot, model, beta0=[slope, intercept])
+            output_boot = odr_boot.run()
+            slope_boot, intercept_boot = output_boot.beta
+            y_bootstrap[i] = slope_boot * x_line + intercept_boot
+        except:
+            # If bootstrap fails, use original estimates
+            y_bootstrap[i] = slope * x_line + intercept
+    
+    # Calculate confidence intervals from bootstrap distribution
+    alpha_bootstrap = 1 - confidence_level / 100
+    y_lower = np.percentile(y_bootstrap, 100 * alpha_bootstrap / 2, axis=0)
+    y_upper = np.percentile(y_bootstrap, 100 * (1 - alpha_bootstrap / 2), axis=0)
+
+    # Alternative method using analytical approach if bootstrap bands are too narrow
+    # Calculate prediction error using ODR covariance matrix
+    if np.max(y_upper - y_lower) < 0.01 * np.max(y_line):  # If bands are too narrow
+        # Use analytical approach with ODR covariance matrix
+        var_slope = cov_matrix[0, 0] if cov_matrix is not None else se_slope**2
+        var_intercept = cov_matrix[1, 1] if cov_matrix is not None else se_intercept**2
+        covar_slope_intercept = cov_matrix[0, 1] if cov_matrix is not None else 0
+        
+        # Calculate variance of predicted y at each x
+        var_y_pred = (x_line**2 * var_slope + 
+                     var_intercept + 
+                     2 * x_line * covar_slope_intercept)
+        
+        # Add residual variance for prediction intervals
+        residual_var = np.sum((y - y_pred)**2) / (len(x) - 2)
+        total_var = var_y_pred + residual_var
+        
+        # Calculate confidence bands
+        margin_of_error = t_val * np.sqrt(total_var)
+        y_upper = y_line + margin_of_error
+        y_lower = y_line - margin_of_error
+
+    # Add confidence bands FIRST (so they appear behind other lines)
+    # Create the filled area by adding upper bound, then lower bound with fill
+    fig.add_trace(go.Scatter(
+        x=x_line,
+        y=y_upper,
+        line=dict(width=0),
+        mode='lines',
+        showlegend=False,
+        hoverinfo='skip',
+        name='Upper CI'
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=x_line,
+        y=y_lower,
+        line=dict(width=0),
+        mode='lines',
+        fill='tonexty',
+        fillcolor='rgba(70,130,180,0.2)',
+        name=f"{confidence_level}% CI",
+        hoverinfo='skip'
+    ))
+
+    # Identity line y = x
+    fig.add_trace(go.Scatter(
+        x=x_line,
+        y=x_line,
+        mode='lines',
+        name='Identity line (y = x)',
+        line=dict(color='red', width=2, dash='dash'),
+        showlegend=True
+    ))
+
+    # Regression line
     fig.add_trace(go.Scatter(
         x=x_line,
         y=y_line,
         mode='lines',
         name=line_name,
-        line=dict(color='red')
+        line=dict(color='darkgreen', width=2),
+        hoverinfo='skip'
     ))
 
-    # CORRECT confidence interval calculation for regression line
-    # This is an approximation - exact calculation is more complex
-    x_mean = np.mean(x)
-    se_pred = np.sqrt(se_intercept**2 + (x_line - x_mean)**2 * se_slope**2)
-    
-    y_upper = y_line + t_val * se_pred
-    y_lower = y_line - t_val * se_pred
-    
-    fig.add_trace(go.Scatter(
-        x=np.concatenate([x_line, x_line[::-1]]),
-        y=np.concatenate([y_upper, y_lower[::-1]]),
-        fill='toself',
-        fillcolor=f'rgba(255, 99, 71, 0.3)',
-        line=dict(color='rgba(255, 99, 71, 0)'),
-        name=f'{confidence_level}% Confidence Interval',
-        showlegend=True
-    ))
-
-    # Layout for the plot
-    title_text = f"Deming Regression for {selected_analyte} ({selected_material})<br>"
-    title_text += f"Slope: {slope:.3f} [{slope_lower:.3f}, {slope_upper:.3f}] | "
-    title_text += f"p-value: {p_val:.3f}"
-    
-    # Add sample size info
-    if outliers_removed > 0:
-        title_text += f" | n={len(x)} ({outliers_removed} outliers removed)"
-    else:
-        title_text += f" | n={len(x)}"
-    
-    # Only add outcome to title if p_val is not 0.0
-    if p_val != 0.0:
-        title_text += f" | {outcome}"
-    
+    # Final layout
     fig.update_layout(
-        title=title_text,
+        title=f"Deming Regression: {selected_analyte}",
         xaxis_title=f"{analyzer_1} ({units})",
         yaxis_title=f"{analyzer_2} ({units})",
-        height=500,
-        plot_bgcolor='white'
+        legend=dict(x=0.01, y=0.99),
+        template='plotly_white',
+        width=800,
+        height=600
     )
 
     st.plotly_chart(fig, use_container_width=True)
 
+    # --- JACKKNIFE ESTIMATION FOR SLOPE & INTERCEPT ---
+    slopes = []
+    intercepts = []
+    for i in range(len(x)):
+        x_jack = np.delete(x, i)
+        y_jack = np.delete(y, i)
+        odr_data_jack = RealData(x_jack, y_jack)
+        odr_jack = ODR(odr_data_jack, model, beta0=[1, 0])
+        output_jack = odr_jack.run()
+        slopes.append(output_jack.beta[0])
+        intercepts.append(output_jack.beta[1])
+
+    # Convert to numpy arrays
+    slopes = np.array(slopes)
+    intercepts = np.array(intercepts)
+
+    # Mean Jackknife Estimates
+    mean_slope = np.mean(slopes)
+    mean_intercept = np.mean(intercepts)
+
+    # Standard Errors
+    se_slope_jack = np.sqrt((len(x) - 1) / len(x) * np.sum((slopes - mean_slope) ** 2))
+    se_intercept_jack = np.sqrt((len(x) - 1) / len(x) * np.sum((intercepts - mean_intercept) ** 2))
+
+    # Confidence intervals
+    ci_jack_slope = t_val * se_slope_jack
+    ci_jack_intercept = t_val * se_intercept_jack
+
+    slope_lower_jack = mean_slope - ci_jack_slope
+    slope_upper_jack = mean_slope + ci_jack_slope
+    intercept_lower_jack = mean_intercept - ci_jack_intercept
+    intercept_upper_jack = mean_intercept + ci_jack_intercept
+
+    # Display jackknife results
+    st.markdown(f"#### 🔁 Jackknife Estimates for {selected_analyte}")
+    jack_df = pd.DataFrame({
+        "Parameter": ["Slope", "Intercept"],
+        "Mean Jackknife Estimate": [round(mean_slope, 3), round(mean_intercept, 3)],
+        "Standard Error": [round(se_slope_jack, 3), round(se_intercept_jack, 3)],
+        f"Lower {confidence_level}% CI": [round(slope_lower_jack, 3), round(intercept_lower_jack, 3)],
+        f"Upper {confidence_level}% CI": [round(slope_upper_jack, 3), round(intercept_upper_jack, 3)],
+    })
+    st.dataframe(jack_df, use_container_width=True)
+    
+    st.markdown("---")  # Add separator between analytes
+    
     return results_list
+
+# Add references at the bottom
+st.markdown("---")
+st.subheader("📚 References")
+st.markdown("""
+**Westgard, J.O., Barry, P.L., and Hunt, M.R. (1981)**, *A Multi-Rule Shewhart Chart for Quality Control in Clinical Chemistry*, Clinical Chemistry, 27 (3), pp.493-501
+(https://westgard.com/downloads/papers-downloads/27-westgard-rules-paper/file.html)
+""")

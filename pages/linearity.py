@@ -455,8 +455,6 @@ if analysis_complete:
 # ================================
 if analysis_complete:
     with st.expander("📊 Recovery Analysis", expanded=False):
-        st.subheader("Recovery Calculation")
-        st.markdown("Choose your Expected and Calculated columns")
         
         selectable_columns = df.columns[6:] if len(df.columns) > 6 else df.columns
         

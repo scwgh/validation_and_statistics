@@ -438,6 +438,7 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
 
     # --- Imprecision Calculations ---
     excluded_indices = set()
+    grubbs_excluded_indices = set()
     analyzer_means = {}
 
     for analyte in df.columns[7:]:
@@ -466,7 +467,7 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
                 outlier_alerts = grubbs_test(group[analyte])
                 outlier_indices = outlier_alerts["Outlier Indices"]
                 if grubbs_outliers.get("exclude_grubbs") and outlier_indices:
-                    excluded_indices.update(outlier_indices)
+                    grubbs_excluded_indices.update(outlier_indices)
                     group = group.drop(index=outlier_indices)
             
             if group.empty or len(group) < 2:
@@ -499,6 +500,9 @@ def precision_studies(df, selected_analyte, rules_enabled, grubbs_outliers, excl
     # -- Inter-analyser differences --
     analyser_comparison = []
     differences = []
+
+    all_excluded_indices = excluded_indices.union(grubbs_excluded_indices)
+    filtered_qc_df = qc_df[~qc_df.index.isin(all_excluded_indices)]
 
     filtered_qc_df = qc_df[~qc_df.index.isin(excluded_indices)]
     for (analyte, material, sample_id), means_dict in analyzer_means.items():

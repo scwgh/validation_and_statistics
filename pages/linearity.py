@@ -91,7 +91,7 @@ else:
 # 2. ANALYSIS CONTROLS
 # ================================
 if df is not None:
-    st.header("⚙️ Analysis Controls")
+    st.header("⚙️ Controls")
     
     with st.expander("🔧 Configure Analysis Parameters", expanded=True):
         col1, col2 = st.columns(2)
@@ -108,6 +108,17 @@ if df is not None:
             
             # Units selection
             units = st.selectbox("Select Units", options=units_list, index=0)
+            
+            # NEW: Date grouping checkbox
+            has_date_column = "Date" in df.columns
+            if has_date_column:
+                group_by_date = st.checkbox("📅 Group by Date (show individual trendlines by date)", 
+                                          value=False,
+                                          help="When checked, data will be grouped by date and each date will have its own trendline")
+            else:
+                group_by_date = False
+                if st.checkbox("📅 Group by Date", disabled=True):
+                    st.warning("Date column not found in dataset")
         
         with col2:
             # Column selection
@@ -134,7 +145,7 @@ if df is not None and len(df.select_dtypes(include=[np.number]).columns) >= 2:
     st.header("📈 Linearity Analysis")
     
     # Prepare data
-    clean_df = df[[x_axis, y_axis] + ([identifier_column] if identifier_column else [])].dropna()
+    clean_df = df[[x_axis, y_axis] + ([identifier_column] if identifier_column else []) + (["Date"] if has_date_column else [])].dropna()
     
     if clean_df.empty:
         st.error("❌ No valid data found in selected columns")
@@ -145,6 +156,7 @@ if df is not None and len(df.select_dtypes(include=[np.number]).columns) >= 2:
     y = clean_df[y_axis].to_numpy()
     
     try:
+        # Calculate overall statistics (used for ungrouped analysis)
         slope, intercept = np.polyfit(x, y, 1)
         fitted_values = slope * x + intercept
         residuals = y - fitted_values
@@ -203,64 +215,146 @@ if df is not None and len(df.select_dtypes(include=[np.number]).columns) >= 2:
             
             fig = go.Figure()
             
-            # Add confidence intervals
-            for ci in ci_data:
-                if ci['n_points'] > 1:
-                    fig.add_trace(go.Scatter(
-                        x=[ci['standard']],
-                        y=[ci['mean']],
-                        error_y=dict(
-                            type='data',
-                            array=[ci['ci_upper'] - ci['mean']],
-                            arrayminus=[ci['mean'] - ci['ci_lower']],
-                            visible=True,
-                            color='rgba(255, 0, 0, 0.7)',
-                            thickness=2,
-                            width=3
-                        ),
-                        mode='markers',
-                        marker=dict(color='red', size=8, symbol='diamond'),
-                        name=f'95% CI (Std {ci["standard"]})',
-                        showlegend=False,
-                        hoverinfo='skip'
-                    ))
+            # Color palette for different dates
+            colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
             
-            # Add legend entry for CIs
-            fig.add_trace(go.Scatter(
-                x=[None], y=[None],
-                mode='markers',
-                marker=dict(color='red', size=8, symbol='diamond'),
-                name='95% CI per Standard',
-                showlegend=True,
-                hoverinfo='skip'
-            ))
-            
-            # Add data points
-            fig.add_trace(go.Scatter(
-                x=x, y=y,
-                mode='markers',
-                name='Data Points',
-                marker=dict(color='blue', size=8),
-                text=hover_text,
-                hoverinfo='text' if identifier_column else 'x+y'
-            ))
-            
-            # Add fitted line
-            x_sorted = np.sort(x)
-            fitted_sorted = slope * x_sorted + intercept
-            fig.add_trace(go.Scatter(
-                x=x_sorted, y=fitted_sorted,
-                mode='lines',
-                name=f"Fit: y = {slope:.4f}x + {intercept:.4f}<br>R² = {r_squared:.4f}",
-                line=dict(color='red', width=2)
-            ))
+            if group_by_date and has_date_column:
+                # Group by date and create separate trendlines
+                unique_dates = clean_df["Date"].unique()
+                date_stats = []
+                
+                for i, date in enumerate(unique_dates):
+                    date_mask = clean_df["Date"] == date
+                    date_data = clean_df[date_mask]
+                    
+                    if len(date_data) >= 2:  # Need at least 2 points for a line
+                        date_x = date_data[x_axis].to_numpy()
+                        date_y = date_data[y_axis].to_numpy()
+                        
+                        # Calculate statistics for this date
+                        date_slope, date_intercept = np.polyfit(date_x, date_y, 1)
+                        date_fitted = date_slope * date_x + date_intercept
+                        date_residuals = date_y - date_fitted
+                        date_r_squared = 1 - (np.sum(date_residuals**2) / np.sum((date_y - np.mean(date_y))**2))
+                        
+                        date_stats.append({
+                            'date': date,
+                            'r_squared': date_r_squared,
+                            'slope': date_slope,
+                            'intercept': date_intercept,
+                            'n_points': len(date_data)
+                        })
+                        
+                        color = colors[i % len(colors)]
+                        
+                        # Format the linear equation for the legend
+                        equation = f"y = {date_slope:.4f}x + {date_intercept:.4f}"
+                        
+                        # Add data points for this date
+                        fig.add_trace(go.Scatter(
+                            x=date_x, y=date_y,
+                            mode='markers',
+                            name=f'{equation} ({date})',
+                            marker=dict(color=color, size=8),
+                            text=hover_text[date_mask] if hover_text is not None else None,
+                            hoverinfo='text' if identifier_column else 'x+y'
+                        ))
+                        
+                        # Add fitted line for this date
+                        x_range = np.linspace(date_x.min(), date_x.max(), 100)
+                        y_fitted_line = date_slope * x_range + date_intercept
+                        
+                        fig.add_trace(go.Scatter(
+                            x=x_range, y=y_fitted_line,
+                            mode='lines',
+                            name=f'Fit - {date} (R²={date_r_squared:.3f})',
+                            line=dict(color=color, width=2, dash='solid'),
+                            hoverinfo='skip'
+                        ))
+                
+                # Add overall statistics as text annotation
+                fig.add_annotation(
+                    x=0.98, y=0.98,
+                    xref='paper', yref='paper',
+                    text=f"Overall: R² = {r_squared:.4f}, Slope = {slope:.4f}",
+                    showarrow=False,
+                    font=dict(size=12, color="black"),
+                    bgcolor="rgba(255,255,255,0.8)",
+                    bordercolor="gray",
+                    borderwidth=1
+                )
+                
+                plot_title = f"Standard Curve - Grouped by Date ({len(unique_dates)} dates)"
+                
+                # Display date statistics
+                if date_stats:
+                    st.subheader("📊 Date Group Statistics")
+                    date_stats_df = pd.DataFrame(date_stats)
+                    st.dataframe(date_stats_df.round(4), use_container_width=True)
+                
+            else:
+                # Original ungrouped analysis
+                # Add confidence intervals
+                for ci in ci_data:
+                    if ci['n_points'] > 1:
+                        fig.add_trace(go.Scatter(
+                            x=[ci['standard']],
+                            y=[ci['mean']],
+                            error_y=dict(
+                                type='data',
+                                array=[ci['ci_upper'] - ci['mean']],
+                                arrayminus=[ci['mean'] - ci['ci_lower']],
+                                visible=True,
+                                color='rgba(255, 0, 0, 0.7)',
+                                thickness=2,
+                                width=3
+                            ),
+                            mode='markers',
+                            marker=dict(color='red', size=8, symbol='diamond'),
+                            name=f'95% CI (Std {ci["standard"]})',
+                            showlegend=False,
+                            hoverinfo='skip'
+                        ))
+                
+                # Add legend entry for CIs
+                fig.add_trace(go.Scatter(
+                    x=[None], y=[None],
+                    mode='markers',
+                    marker=dict(color='red', size=8, symbol='diamond'),
+                    name='95% CI per Standard',
+                    showlegend=True,
+                    hoverinfo='skip'
+                ))
+                
+                # Add data points
+                fig.add_trace(go.Scatter(
+                    x=x, y=y,
+                    mode='markers',
+                    name='Data Points',
+                    marker=dict(color='blue', size=8),
+                    text=hover_text,
+                    hoverinfo='text' if identifier_column else 'x+y'
+                ))
+                
+                # Add fitted line
+                x_sorted = np.sort(x)
+                fitted_sorted = slope * x_sorted + intercept
+                fig.add_trace(go.Scatter(
+                    x=x_sorted, y=fitted_sorted,
+                    mode='lines',
+                    name=f"Fit: y = {slope:.4f}x + {intercept:.4f}<br>R² = {r_squared:.4f}",
+                    line=dict(color='red', width=2)
+                ))
+                
+                plot_title = "Standard Curve with Linear Fit and 95% Confidence Intervals"
             
             fig.update_layout(
-                title="Standard Curve with Linear Fit and 95% Confidence Intervals",
+                title=plot_title,
                 xaxis_title=f"{x_axis} ({units})",
                 yaxis_title=f"{y_axis} ({units})",
                 legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
-                height=600
+                height=750,     
+                width=1000,
             )
             
             st.plotly_chart(fig, use_container_width=True)

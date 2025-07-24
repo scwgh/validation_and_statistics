@@ -195,17 +195,17 @@ def bland_altman_analysis(df, material_type, selected_analyte, analyzer_1, analy
         return
     
     # Extract values and calculate differences
-    vals1 = merged_data[f'{selected_analyte}_1']
-    vals2 = merged_data[f'{selected_analyte}_2']
-    sample_ids = merged_data['Sample ID']
+    vals1 = merged_data[f'{selected_analyte}_1'].values  # Convert to numpy array
+    vals2 = merged_data[f'{selected_analyte}_2'].values  # Convert to numpy array
+    sample_ids = merged_data['Sample ID'].values  # Convert to numpy array
     
     # Calculate differences and means
     diffs = vals1 - vals2
     means = (vals1 + vals2) / 2
-    percent_diffs = (diffs / means.replace(0, np.nan)) * 100
+    percent_diffs = (diffs / np.where(means == 0, np.nan, means)) * 100
     
     # Apply Grubbs test to differences
-    is_outlier = grubbs_test(diffs.values, alpha=alpha)
+    is_outlier = grubbs_test(diffs, alpha=alpha)
     
     # Apply outlier exclusion logic
     if exclude_outliers and is_outlier.any():
@@ -244,7 +244,7 @@ def bland_altman_analysis(df, material_type, selected_analyte, analyzer_1, analy
     
     st.info(analysis_note)
     
-    # Calculate statistics using final data
+    # Calculate statistics using final data (FIXED: Now using the correctly filtered data)
     N = len(vals1_final)
     mean_diff = np.mean(diffs_final)
     std_diff = np.std(diffs_final, ddof=1)
@@ -259,13 +259,13 @@ def bland_altman_analysis(df, material_type, selected_analyte, analyzer_1, analy
     ci_lower_upper = loa_lower + ci_range
     ci_lower_lower = loa_lower - ci_range
     
-    # Statistical tests using final data
+    # Statistical tests using final data (FIXED: Now using the correctly filtered data)
     t_stat, p_val = stats.ttest_rel(vals1_final, vals2_final)
     slope, intercept, r_value, p_val_reg, _ = stats.linregress(vals1_final, vals2_final)
     
-    # Calculate percentage statistics using final data
-    mean_percent_diff = np.mean(percent_diffs_final)
-    std_percent_diff = np.std(percent_diffs_final, ddof=1)
+    # Calculate percentage statistics using final data (FIXED: Now using the correctly filtered data)
+    mean_percent_diff = np.nanmean(percent_diffs_final)
+    std_percent_diff = np.nanstd(percent_diffs_final, ddof=1)
     loa_upper_percent = mean_percent_diff + 1.96 * std_percent_diff
     loa_lower_percent = mean_percent_diff - 1.96 * std_percent_diff
     
@@ -421,7 +421,7 @@ def bland_altman_analysis(df, material_type, selected_analyte, analyzer_1, analy
     )
     st.plotly_chart(fig2, use_container_width=True)
     
-    # --- Plot 3: Regression Plot ---
+# --- Plot 3: Regression Plot ---
     fig3 = go.Figure()
     
     # Same logic for regression plot
@@ -463,12 +463,38 @@ def bland_altman_analysis(df, material_type, selected_analyte, analyzer_1, analy
             hovertemplate='<b>Sample ID: %{text}</b><br>%{x:.3f} vs %{y:.3f}<extra></extra>'
         ))
     
+    # Calculate prediction intervals (wider than confidence intervals)
+    # Use final data for CI calculations
+    x_mean = np.mean(vals1_final)
+    sxx = np.sum((vals1_final - x_mean) ** 2)
+    mse = np.sum((vals2_final - (intercept + slope * vals1_final)) ** 2) / (N - 2)  # Mean squared error
+    
+    # Calculate standard error for prediction intervals (includes individual point variability)
+    se_pred = np.sqrt(mse * (1 + 1/N + (x_range_reg - x_mean)**2 / sxx))
+    
+    # 95% prediction interval (t-distribution with N-2 degrees of freedom)
+    t_val = stats.t.ppf(0.975, df=N-2)  # 95% PI
+    ci_upper = y_fit + t_val * se_pred
+    ci_lower = y_fit - t_val * se_pred
+    
+    # Add confidence interval as shaded area
+    fig3.add_trace(go.Scatter(
+        x=np.concatenate([x_range_reg, x_range_reg[::-1]]),
+        y=np.concatenate([ci_upper, ci_lower[::-1]]),
+        fill='toself',
+        fillcolor='rgba(220, 20, 60, 0.2)',  # Light crimson with transparency
+        line=dict(color='rgba(255,255,255,0)'),  # Invisible line
+        name='95% Prediction Interval',
+        hoverinfo='skip',
+        showlegend=True
+    ))
+    
     # Add regression line (based on final data)
     fig3.add_trace(go.Scatter(
         x=x_range_reg,
         y=y_fit,
         mode='lines',
-        line=dict(color='crimson', dash='solid'),
+        line=dict(color='crimson', dash='solid', width=2),
         name=f'Regression Line<br>y = {slope:.3f}x + {intercept:.3f}<br>R² = {r_value**2:.3f}'
     ))
     
@@ -477,12 +503,12 @@ def bland_altman_analysis(df, material_type, selected_analyte, analyzer_1, analy
         x=x_range_reg,
         y=x_range_reg,
         mode='lines',
-        line=dict(color='gray', dash='dot'),
+        line=dict(color='gray', dash='dot', width=1),
         name='Line of Identity (y = x)'
     ))
     
     fig3.update_layout(
-        title=f"{selected_analyte} - Regression Plot{title_suffix}",
+        title=f"{selected_analyte} - Regression Plot with Prediction Intervals{title_suffix}",
         xaxis_title=f"{analyzer_1} ({units})",
         yaxis_title=f"{analyzer_2} ({units})",
         template="plotly_white"
@@ -582,48 +608,125 @@ def bland_altman_analysis(df, material_type, selected_analyte, analyzer_1, analy
                 vals2 = matched_data[f'{analyte}_2']
                 diffs = vals1 - vals2
                 
-                mean_diff = np.mean(diffs)
-                std_diff = np.std(diffs, ddof=1)
+                # Apply Grubbs test for outlier detection
+                is_outlier_summary = grubbs_test(diffs.values, alpha=alpha)
+                n_outliers = sum(is_outlier_summary)
+                
+                # Calculate stats with and without outliers
+                if exclude_outliers and is_outlier_summary.any():
+                    normal_mask = ~is_outlier_summary
+                    vals1_clean = vals1.values[normal_mask]
+                    vals2_clean = vals2.values[normal_mask]
+                    diffs_clean = vals1_clean - vals2_clean
+                    
+                    mean_diff = np.mean(diffs_clean)
+                    std_diff = np.std(diffs_clean, ddof=1)
+                    n_samples = len(diffs_clean)
+                    _, p_val = stats.ttest_rel(vals1_clean, vals2_clean)
+                else:
+                    mean_diff = np.mean(diffs)
+                    std_diff = np.std(diffs, ddof=1)
+                    n_samples = len(diffs)
+                    _, p_val = stats.ttest_rel(vals1, vals2)
+                
                 loa_upper = mean_diff + 1.96 * std_diff
                 loa_lower = mean_diff - 1.96 * std_diff
-                _, p_val = stats.ttest_rel(vals1, vals2)
+                
+                # Calculate correlation
+                if exclude_outliers and is_outlier_summary.any():
+                    slope, intercept, r_value, _, _ = stats.linregress(vals1_clean, vals2_clean)
+                else:
+                    slope, intercept, r_value, _, _ = stats.linregress(vals1, vals2)
                 
                 summary_table.append({
                     'Material': material,
                     'Analyte': analyte,
                     'Analyzer 1': analyzer1,
                     'Analyzer 2': analyzer2,
-                    'N Samples': len(matched_data),
+                    'N Samples': n_samples,
+                    'N Outliers': n_outliers,
                     'Mean Difference': round(mean_diff, 3),
                     'SD of Differences': round(std_diff, 3),
                     'LoA Lower': round(loa_lower, 3),
                     'LoA Upper': round(loa_upper, 3),
+                    'R²': round(r_value**2, 3),
                     'p-value': round(p_val, 3)
                 })
                 
             except Exception as e:
-                st.warning(f"⚠️ Could not process '{analyte}' for material '{material}': {e}")
+                st.warning(f"⚠️ Could not process {material} - {analyte}: {str(e)}")
+                continue
     
     if summary_table:
         summary_df = pd.DataFrame(summary_table)
         st.dataframe(summary_df, use_container_width=True, hide_index=True)
         
-        # Add download button for summary
-        csv = summary_df.to_csv(index=False)
+        # Add download button for summary table
+        csv_buffer = io.StringIO()
+        summary_df.to_csv(csv_buffer, index=False)
+        csv_data = csv_buffer.getvalue()
+        
         st.download_button(
-            label="📥 Download Summary as CSV",
-            data=csv,
+            label="📥 Download Summary Table as CSV",
+            data=csv_data,
             file_name=f"bland_altman_summary_{material_type}_{selected_analyte}.csv",
             mime="text/csv"
         )
-    
-    with st.expander("📚 References"):
-        st.markdown("""
-        **Giavarina, D. (2015)**, *Understanding Bland Altman analysis*. Biochemia medica, 25(2), pp. 141–151. 
-        https://doi.org/10.11613/BM.2015.015
         
-        **Bland, J. M., & Altman, D. G. (1986)**. *Statistical methods for assessing agreement between two methods of clinical measurement*. The lancet, 1(8476), 307-310.
-        """)
+        # Display key insights
+        st.markdown("### 🔍 Key Insights")
+        
+        # Calculate some summary statistics across all combinations
+        total_combinations = len(summary_df)
+        significant_differences = len(summary_df[summary_df['p-value'] < 0.05])
+        high_correlation = len(summary_df[summary_df['R²'] > 0.9])
+        total_outliers = summary_df['N Outliers'].sum()
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Total Combinations", total_combinations)
+        
+        with col2:
+            st.metric("Significant Differences", f"{significant_differences}/{total_combinations}")
+        
+        with col3:
+            st.metric("High Correlation (R² > 0.9)", f"{high_correlation}/{total_combinations}")
+        
+        with col4:
+            st.metric("Total Outliers Detected", total_outliers)
+        
+        # Show materials/analytes with concerning results
+        concerning_results = summary_df[
+            (summary_df['p-value'] < 0.05) | 
+            (summary_df['R²'] < 0.8) | 
+            (summary_df['N Outliers'] > 0)
+        ]
+        
+        if len(concerning_results) > 0:
+            st.markdown("#### ⚠️ Attention Required")
+            st.markdown("*The following combinations show significant differences, low correlation, or outliers:*")
+            
+            # Create a more focused display
+            concerning_display = concerning_results[['Material', 'Analyte', 'Analyzer 1', 'Analyzer 2', 
+                                                   'p-value', 'R²', 'N Outliers']].copy()
+            
+            # Add interpretation column
+            def interpret_concern(row):
+                concerns = []
+                if row['R²'] < 0.8:
+                    concerns.append("Correlation score <0.8 - further investigation suggested.")
+                if row['N Outliers'] > 0:
+                    concerns.append(f"{row['N Outliers']} outlier(s)")
+                return "; ".join(concerns)
+            
+            concerning_display['Concerns'] = concerning_results.apply(interpret_concern, axis=1)
+            st.dataframe(concerning_display, use_container_width=True, hide_index=True)
+        else:
+            st.success("✅ All analyzer combinations show good agreement!")
+    
+    else:
+        st.warning("No valid combinations found for analysis. Please check your data format and ensure there are matching samples between analyzers.")
 
 if __name__ == "__main__":
     run()

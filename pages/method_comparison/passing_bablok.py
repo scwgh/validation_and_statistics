@@ -40,6 +40,9 @@ def calculate_r2(x, y, slope, intercept):
 def passing_bablok_regression(x, y):
     """Perform Passing-Bablok regression"""
     n = len(x)
+    if n >500:
+        st.warning("⚠️ Too many data points for Passing-Bablok regression. Consider reducing the dataset size.")
+        return 1.0, 0.0
     slopes = []
 
     # Compute all pairwise slopes

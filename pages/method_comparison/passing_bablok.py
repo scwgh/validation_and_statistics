@@ -1,18 +1,19 @@
 import os
-import numpy as np
-import pandas as pd
 import streamlit as st
+import pandas as pd
+import numpy as np
+from scipy import stats
 import plotly.graph_objects as go
 from scipy.stats import linregress
 from utils import apply_app_styling, units_list
 
 # === Utility Functions ===
 def grubbs_test(values, alpha=0.05):
-    import numpy as np
-    import pandas as pd
-    from scipy import stats
-
-    values = pd.Series(values)  # Convert to Series for idxmax
+    """
+    Original Grubbs test for outlier detection (single outlier detection)
+    KEEPING THIS FOR BACKWARD COMPATIBILITY
+    """
+    values = pd.Series(values)
     n = len(values)
     if n < 3:
         return np.array([False] * n)
@@ -30,6 +31,241 @@ def grubbs_test(values, alpha=0.05):
         is_outlier[max_diff_idx] = True
     return is_outlier
 
+def grubbs_test_iterative(values, alpha=0.05, max_iterations=10):
+    """
+    Perform iterative Grubbs test for outlier detection.
+    This will continue removing outliers until no more are found or max_iterations is reached.
+    """
+    values = pd.Series(values).copy()
+    outlier_indices = []
+    original_indices = values.index.tolist()
+    
+    for iteration in range(max_iterations):
+        n = len(values)
+        if n < 3:  # Need at least 3 points for Grubbs test
+            break
+            
+        # Calculate Grubbs statistic
+        mean_val = values.mean()
+        std_val = values.std(ddof=1)
+        
+        if std_val == 0:  # All values are the same
+            break
+            
+        abs_diff = abs(values - mean_val)
+        max_diff_idx = abs_diff.idxmax()
+        G = abs_diff[max_diff_idx] / std_val
+        
+        # Critical value from Grubbs test table (two-sided)
+        t_crit = stats.t.ppf(1 - alpha / (2 * n), df=n - 2)
+        G_crit = ((n - 1) / np.sqrt(n)) * np.sqrt(t_crit**2 / (n - 2 + t_crit**2))
+        
+        if G > G_crit:
+            # Found an outlier
+            outlier_indices.append(max_diff_idx)
+            values = values.drop(max_diff_idx)
+        else:
+            # No more outliers found
+            break
+    
+    # Create boolean mask for original data
+    is_outlier = np.array([idx in outlier_indices for idx in original_indices])
+    return is_outlier
+
+def identify_outliers_beyond_limits(differences, mean_diff, std_diff, alpha=0.05, method='grubbs_iterative'):
+    """
+    Identify outliers using multiple methods and return the most comprehensive result.
+    
+    Parameters:
+    - differences: array of difference values
+    - mean_diff: mean of differences
+    - std_diff: standard deviation of differences
+    - alpha: significance level for Grubbs test
+    - method: 'grubbs_iterative', 'grubbs_single', 'limits_only', or 'combined'
+    """
+    n = len(differences)
+    
+    if method == 'grubbs_iterative':
+        return grubbs_test_iterative(differences, alpha)
+    
+    elif method == 'grubbs_single':
+        return grubbs_test(differences, alpha)
+    
+    elif method == 'limits_only':
+        # Simply identify points outside ±1.96 SD limits
+        loa_upper = mean_diff + 1.96 * std_diff
+        loa_lower = mean_diff - 1.96 * std_diff
+        return (differences > loa_upper) | (differences < loa_lower)
+    
+    elif method == 'combined':
+        # Combine Grubbs test with limit-based detection
+        grubbs_outliers = grubbs_test_iterative(differences, alpha)
+        
+        # Recalculate limits after removing Grubbs outliers
+        if grubbs_outliers.any():
+            clean_diffs = differences[~grubbs_outliers]
+            if len(clean_diffs) > 0:
+                clean_mean = np.mean(clean_diffs)
+                clean_std = np.std(clean_diffs, ddof=1)
+                clean_upper = clean_mean + 1.96 * clean_std
+                clean_lower = clean_mean - 1.96 * clean_std
+                
+                # Check if any remaining points are outside the new limits
+                limit_outliers = (differences > clean_upper) | (differences < clean_lower)
+                return grubbs_outliers | limit_outliers
+        
+        return grubbs_outliers
+    
+    else:
+        raise ValueError("Method must be 'grubbs_iterative', 'grubbs_single', 'limits_only', or 'combined'")
+
+def enhanced_outlier_analysis(diffs, alpha=0.05):
+    """
+    Perform comprehensive outlier analysis and return detailed information.
+    """
+    n = len(diffs)
+    mean_diff = np.mean(diffs)
+    std_diff = np.std(diffs, ddof=1)
+    
+    # Apply different outlier detection methods
+    methods = {
+        'Grubbs (Single)': identify_outliers_beyond_limits(diffs, mean_diff, std_diff, alpha, 'grubbs_single'),
+        'Grubbs (Iterative)': identify_outliers_beyond_limits(diffs, mean_diff, std_diff, alpha, 'grubbs_iterative'),
+        'Limits Only (±1.96σ)': identify_outliers_beyond_limits(diffs, mean_diff, std_diff, alpha, 'limits_only'),
+        'Combined Method': identify_outliers_beyond_limits(diffs, mean_diff, std_diff, alpha, 'combined')
+    }
+    
+    # Calculate limits of agreement
+    loa_upper = mean_diff + 1.96 * std_diff
+    loa_lower = mean_diff - 1.96 * std_diff
+    
+    results = {
+        'methods': methods,
+        'limits': {'upper': loa_upper, 'lower': loa_lower, 'mean': mean_diff, 'std': std_diff},
+        'n_total': n
+    }
+    
+    return results
+
+def perform_outlier_detection_with_options(merged_data, selected_analyte, analyzer_1, analyzer_2, alpha):
+    """
+    Enhanced outlier detection with multiple method options for the user.
+    """
+    # Extract values and calculate differences
+    vals1 = merged_data[f'{selected_analyte}_1']
+    vals2 = merged_data[f'{selected_analyte}_2']
+    diffs_initial = vals1 - vals2
+    
+    # Perform comprehensive outlier analysis
+    outlier_analysis = enhanced_outlier_analysis(diffs_initial.values, alpha=alpha)
+    
+    # Display results for each method
+    st.markdown("**Outlier Detection Method Comparison:**")
+    
+    method_results = {}
+    for method_name, is_outlier in outlier_analysis['methods'].items():
+        n_outliers = sum(is_outlier)
+        method_results[method_name] = {
+            'outliers': is_outlier,
+            'count': n_outliers,
+            'indices': np.where(is_outlier)[0] if n_outliers > 0 else []
+        }
+    
+    # Create comparison table
+    comparison_data = []
+    for method_name, result in method_results.items():
+        comparison_data.append({
+            'Method': method_name,
+            'Outliers Found': result['count'],
+            'Sample IDs': ', '.join(merged_data['Sample ID'].iloc[result['indices']].astype(str).tolist()) if result['count'] > 0 else 'None'
+        })
+    
+    comparison_df = pd.DataFrame(comparison_data)
+    st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+    
+    # Let user choose method
+    method_choice = st.selectbox(
+        "Select outlier detection method:",
+        options=list(outlier_analysis['methods'].keys()),
+        index=2,  # Default to 'Limits Only' which is more straightforward
+        help="""
+        - **Grubbs (Single)**: Detects only the most extreme outlier
+        - **Grubbs (Iterative)**: Repeatedly applies Grubbs test until no more outliers found
+        - **Limits Only (±1.96σ)**: Simply flags points outside ±1.96 standard deviations
+        - **Combined Method**: Uses iterative Grubbs + limit checking for comprehensive detection
+        """
+    )
+    
+    selected_outliers = outlier_analysis['methods'][method_choice]
+    
+    # Always get outlier details (even if empty) to avoid NameError
+    outlier_indices = np.where(selected_outliers)[0]
+    
+    if len(outlier_indices) == 0:
+        st.success(f"✅ No outliers detected using {method_choice}.")
+        return selected_outliers, method_choice
+    else:
+        # Get outlier details
+        outlier_sample_ids = merged_data['Sample ID'].iloc[outlier_indices].tolist()
+        outlier_vals1 = vals1.iloc[outlier_indices].tolist()
+        outlier_vals2 = vals2.iloc[outlier_indices].tolist()
+        outlier_diffs = diffs_initial.iloc[outlier_indices].tolist()
+        
+        st.error(f"⚠️ {len(outlier_indices)} outlier(s) detected using {method_choice}:")
+        
+        # Create outlier details table
+        outlier_details = []
+        for i, idx in enumerate(outlier_indices):
+            # Calculate how far outside limits this point is
+            mean_diff = np.mean(diffs_initial)
+            std_diff = np.std(diffs_initial, ddof=1)
+            z_score = abs(outlier_diffs[i] - mean_diff) / std_diff
+            
+            outlier_details.append({
+                'Sample ID': outlier_sample_ids[i],
+                f'{analyzer_1}': round(outlier_vals1[i], 3),
+                f'{analyzer_2}': round(outlier_vals2[i], 3),
+                'Difference': round(outlier_diffs[i], 3),
+                'Mean': round((outlier_vals1[i] + outlier_vals2[i]) / 2, 3),
+                'Z-Score': round(z_score, 2),
+                'Outside Limits': '✓' if abs(z_score) > 1.96 else '✗'
+            })
+        
+        outlier_df = pd.DataFrame(outlier_details)
+        st.dataframe(outlier_df, use_container_width=True, hide_index=True)
+        
+        return selected_outliers, method_choice
+
+def prepare_matched_data(df, material_type, selected_analyte, analyzer_1, analyzer_2):
+    """
+    Prepare matched data for Bland-Altman analysis
+    """
+    # Filter data for the selected material
+    data = df[df['Material'] == material_type].copy()
+    
+    # Get data for each analyzer
+    data_analyzer1 = data[data['Analyser'] == analyzer_1][['Sample ID', selected_analyte]].dropna()
+    data_analyzer2 = data[data['Analyser'] == analyzer_2][['Sample ID', selected_analyte]].dropna()
+    
+    # Convert to numeric
+    data_analyzer1[selected_analyte] = pd.to_numeric(data_analyzer1[selected_analyte], errors='coerce')
+    data_analyzer2[selected_analyte] = pd.to_numeric(data_analyzer2[selected_analyte], errors='coerce')
+    
+    # Remove NaN values
+    data_analyzer1 = data_analyzer1.dropna()
+    data_analyzer2 = data_analyzer2.dropna()
+    
+    # Merge on Sample ID to get only matching samples
+    merged_data = pd.merge(
+        data_analyzer1, 
+        data_analyzer2, 
+        on='Sample ID', 
+        suffixes=('_1', '_2'),
+        how='inner'
+    )
+    
+    return merged_data
+
 def calculate_r2(x, y, slope, intercept):
     """Calculate R-squared value for regression"""
     y_pred = slope * x + intercept
@@ -40,8 +276,7 @@ def calculate_r2(x, y, slope, intercept):
 def passing_bablok_regression(x, y):
     """Perform Passing-Bablok regression"""
     n = len(x)
-    if n >500:
-        st.warning("⚠️ Too many data points for Passing-Bablok regression. Consider reducing the dataset size.")
+    if n > 1000:
         return 1.0, 0.0
     slopes = []
 
@@ -72,78 +307,30 @@ def passing_bablok_regression(x, y):
     return slope, intercept
 
 def detect_outliers_grubbs(data, alpha=0.05):
-    """Detect outliers using Grubbs test - returns indices of outliers"""
+    """Detect outliers using Grubbs test - returns boolean mask"""
     try:
-        outlier_mask = grubbs_test(data, alpha=alpha)
-        return np.where(outlier_mask)[0].tolist()  # Return indices instead of boolean array
+        outlier_mask = grubbs_test_iterative(data, alpha=alpha)
+        return outlier_mask
     except Exception as e:
         st.warning(f"Grubbs test failed: {str(e)}")
-        return []
+        return np.array([False] * len(data))
 
-def check_outliers_for_analyte(df, analyte, analyzer_1, analyzer_2, alpha=0.05):
-    """Check for outliers in a specific analyte without removing them"""
-    if analyte not in df.columns:
-        return None
-
-    filtered = df[df['Analyser'].isin([analyzer_1, analyzer_2])]
-    values_1 = filtered[filtered['Analyser'] == analyzer_1][['Sample ID', analyte]].dropna()
-    values_2 = filtered[filtered['Analyser'] == analyzer_2][['Sample ID', analyte]].dropna()
-
-    merged = pd.merge(values_1, values_2, on='Sample ID', suffixes=('_1', '_2'))
-    if merged.shape[0] < 2:
-        return None
-
-    # Convert to numeric and handle errors
-    x = pd.to_numeric(merged[f'{analyte}_1'], errors='coerce')
-    y = pd.to_numeric(merged[f'{analyte}_2'], errors='coerce')
-    sample_ids = merged['Sample ID']
-
-    # Remove rows with NaN values
-    valid_mask = ~(np.isnan(x) | np.isnan(y))
-    x = x[valid_mask].reset_index(drop=True)
-    y = y[valid_mask].reset_index(drop=True)
-    sample_ids = sample_ids[valid_mask].reset_index(drop=True)
-
-    if len(x) < 2:
-        return None
-    
-    # Detect outliers in both x and y data
-    outliers_x = detect_outliers_grubbs(x.values, alpha)
-    outliers_y = detect_outliers_grubbs(y.values, alpha)
-    
-    # Combine outlier indices
-    outlier_indices = set(outliers_x + outliers_y)
-    outlier_indices = {idx for idx in outlier_indices if 0 <= idx < len(x)}
-    
-    if outlier_indices:
-        outlier_samples = sample_ids.iloc[list(outlier_indices)].tolist()
-        return {
-            'total_outliers': len(outlier_indices),
-            'outlier_samples': outlier_samples,
-            'outlier_indices': list(outlier_indices)
-        }
-    
-    return None
-
-def perform_analysis(df, analyte, analyzer_1, analyzer_2, units, remove_outliers=False, alpha=0.05):
-    """Perform Passing-Bablok analysis for a single analyte"""
+def perform_analysis(df, material_type, analyte, analyzer_1, analyzer_2, units, outlier_mask=None, remove_outliers=False, alpha=0.05):
+    """Perform Passing-Bablok analysis for a single analyte with outlier handling"""
     if analyte not in df.columns:
         st.warning(f"⚠ {analyte} column not found in data.")
         return None, None, None, None
 
-    filtered = df[df['Analyser'].isin([analyzer_1, analyzer_2])]
-
-    values_1 = filtered[filtered['Analyser'] == analyzer_1][['Sample ID', analyte]].dropna()
-    values_2 = filtered[filtered['Analyser'] == analyzer_2][['Sample ID', analyte]].dropna()
-
-    merged = pd.merge(values_1, values_2, on='Sample ID', suffixes=('_1', '_2'))
-    if merged.shape[0] < 2:
+    # Prepare matched data
+    merged_data = prepare_matched_data(df, material_type, analyte, analyzer_1, analyzer_2)
+    
+    if len(merged_data) < 2:
         return None, None, None, None
 
     # Convert to numeric and handle errors
-    x = pd.to_numeric(merged[f'{analyte}_1'], errors='coerce')
-    y = pd.to_numeric(merged[f'{analyte}_2'], errors='coerce')
-    sample_ids = merged['Sample ID']
+    x = pd.to_numeric(merged_data[f'{analyte}_1'], errors='coerce')
+    y = pd.to_numeric(merged_data[f'{analyte}_2'], errors='coerce')
+    sample_ids = merged_data['Sample ID']
 
     # Remove rows with NaN values
     valid_mask = ~(np.isnan(x) | np.isnan(y))
@@ -154,39 +341,42 @@ def perform_analysis(df, analyte, analyzer_1, analyzer_2, units, remove_outliers
     if len(x) < 2:
         return None, None, None, None
     
-    # Always detect outliers for plotting purposes
-    outliers_x = detect_outliers_grubbs(x.values, alpha)
-    outliers_y = detect_outliers_grubbs(y.values, alpha)
+    # Use provided outlier mask or detect outliers
+    if outlier_mask is None:
+        # Detect outliers using Grubbs test on both x and y data
+        outliers_x = detect_outliers_grubbs(x.values, alpha)
+        outliers_y = detect_outliers_grubbs(y.values, alpha)
+        outlier_mask = outliers_x | outliers_y
     
-    # Combine outlier indices
-    outlier_indices = set(outliers_x + outliers_y)
-    outlier_indices = {idx for idx in outlier_indices if 0 <= idx < len(x)}
+    outlier_indices = np.where(outlier_mask)[0]
     
     outlier_info = None
-    x_analysis = x.copy()
-    y_analysis = y.copy()
-    sample_ids_analysis = sample_ids.copy()
-    
-    if outlier_indices:
+    if len(outlier_indices) > 0:
         outlier_info = {
             'total_outliers': len(outlier_indices),
-            'outlier_samples': sample_ids.iloc[list(outlier_indices)].tolist(),
-            'outlier_indices': list(outlier_indices)
+            'outlier_samples': sample_ids.iloc[outlier_indices].tolist(),
+            'outlier_mask': outlier_mask
         }
+    
+    # Prepare data for analysis
+    if remove_outliers and outlier_info:
+        # Use only non-outlier data for regression
+        normal_mask = ~outlier_mask
+        x_analysis = x[normal_mask].values
+        y_analysis = y[normal_mask].values
+        sample_ids_analysis = sample_ids[normal_mask].values
         
-        if remove_outliers:
-            # Remove outliers for analysis
-            keep_indices = [i for i in range(len(x)) if i not in outlier_indices]
-            x_analysis = x.iloc[keep_indices].reset_index(drop=True)
-            y_analysis = y.iloc[keep_indices].reset_index(drop=True)
-            sample_ids_analysis = sample_ids.iloc[keep_indices].reset_index(drop=True)
-            
-            if len(x_analysis) < 2:
-                st.warning(f"⚠ Too few data points remaining after outlier removal for {analyte}")
-                return None, None, None, outlier_info
+        if len(x_analysis) < 2:
+            return None, None, None, outlier_info
+    else:
+        # Use all data for regression
+        x_analysis = x.values
+        y_analysis = y.values
+        sample_ids_analysis = sample_ids.values
 
-    slope, intercept = passing_bablok_regression(x_analysis.values, y_analysis.values)
-    r2 = calculate_r2(x_analysis.values, y_analysis.values, slope, intercept)
+    # Perform regression on the selected data
+    slope, intercept = passing_bablok_regression(x_analysis, y_analysis)
+    r2 = calculate_r2(x_analysis, y_analysis, slope, intercept)
 
     results = {
         "Analyte": analyte,
@@ -195,16 +385,27 @@ def perform_analysis(df, analyte, analyzer_1, analyzer_2, units, remove_outliers
         "Slope": round(slope, 4),
         "Intercept": round(intercept, 4),
         "R²": round(r2, 4),
-        "n": len(x_analysis)
+        "n": len(x_analysis),
+        "Outliers Excluded": "Yes" if remove_outliers and outlier_info else "No"
     }
 
-    # Pass all data for plotting (including outliers)
+    # Create plot - pass the exclusion flag to determine what data to show
     fig = plot_regression_plotly(
-        analyte, x, y, sample_ids, slope, intercept, r2, 
-        analyzer_1, analyzer_2, units, list(outlier_indices) if outlier_indices else []
+        analyte,
+        x.values,  # All original x data
+        y.values,  # All original y data
+        sample_ids.values,  # All sample IDs
+        slope,
+        intercept,
+        r2,
+        analyzer_1,
+        analyzer_2,
+        units,
+        outlier_mask,  # Pass the boolean mask
+        remove_outliers=remove_outliers
     )
     
-    # Create merged dataframe for display (all data)
+    # Create merged dataframe for display (all original data)
     merged_display = pd.DataFrame({
         'Sample ID': sample_ids,
         f'{analyte}_1': x,
@@ -213,114 +414,112 @@ def perform_analysis(df, analyte, analyzer_1, analyzer_2, units, remove_outliers
     
     return results, fig, merged_display, outlier_info
 
-def plot_regression_plotly(analyte, x_data, y_data, sample_ids, slope, intercept, r2, analyzer_1, analyzer_2, units, outlier_indices=[], remove_outliers=False):
-    """Create Plotly regression plot with outliers highlighted or removed"""
+def plot_regression_plotly(analyte, x_data, y_data, sample_ids, slope, intercept, r2, analyzer_1, analyzer_2, units, outlier_mask, remove_outliers=False):
+    """Create Plotly regression plot with proper outlier handling"""
     if len(x_data) == 0:
         return go.Figure()
     
-    # Convert to numpy arrays for easier indexing
-    x_array = np.array(x_data)
-    y_array = np.array(y_data)
-    sample_ids_array = np.array(sample_ids)
-    
     # Create masks for outliers and normal points
-    outlier_mask = np.isin(range(len(x_array)), outlier_indices)
     normal_mask = ~outlier_mask
     
-    # If removing outliers, only use normal points for plotting
-    if remove_outliers and len(outlier_indices) > 0:
-        x_plot = x_array[normal_mask]
-        y_plot = y_array[normal_mask]
-        sample_ids_plot = sample_ids_array[normal_mask]
-        
-        x_line = np.linspace(min(x_plot), max(x_plot), 100) if len(x_plot) > 0 else np.array([])
-        y_line = slope * x_line + intercept
-        
-        # Calculate confidence interval using only normal points
-        residuals = y_plot - (slope * x_plot + intercept) if len(x_plot) > 0 else np.array([])
-        y_err = 1.96 * np.std(residuals) if len(residuals) > 1 else 0
-        
-        fig = go.Figure()
-        
-        # Add only normal data points
-        if len(x_plot) > 0:
+    fig = go.Figure()
+
+    # If excluding outliers, only plot normal points and use them for line range
+    if remove_outliers:
+        if np.any(normal_mask):
+            # Only plot normal data points
             fig.add_trace(go.Scatter(
-                x=x_plot,
-                y=y_plot,
+                x=x_data[normal_mask],
+                y=y_data[normal_mask],
                 mode='markers',
                 marker=dict(color="mediumslateblue", size=8, symbol='circle'),
-                text=sample_ids_plot,
+                text=sample_ids[normal_mask],
                 hovertemplate='<b>Sample ID:</b> %{text}<br><b>X:</b> %{x:.2f}<br><b>Y:</b> %{y:.2f}<extra></extra>',
                 name="Data Points"
             ))
+            
+            # Use only normal points for line range
+            x_range_data = x_data[normal_mask]
+        else:
+            x_range_data = np.array([])
     else:
-        # Show all points including outliers
-        x_line = np.linspace(min(x_array), max(x_array), 100)
-        y_line = slope * x_line + intercept
-        
-        # Calculate confidence interval
-        residuals = y_array - (slope * x_array + intercept)
-        y_err = 1.96 * np.std(residuals) if len(residuals) > 1 else 0
-
-        fig = go.Figure()
-
-        # Add normal data points first
+        # Include all points but distinguish outliers
+        # Add normal data points
         if np.any(normal_mask):
             fig.add_trace(go.Scatter(
-                x=x_array[normal_mask],
-                y=y_array[normal_mask],
+                x=x_data[normal_mask],
+                y=y_data[normal_mask],
                 mode='markers',
                 marker=dict(color="mediumslateblue", size=8, symbol='circle'),
-                text=sample_ids_array[normal_mask],
+                text=sample_ids[normal_mask],
                 hovertemplate='<b>Sample ID:</b> %{text}<br><b>X:</b> %{x:.2f}<br><b>Y:</b> %{y:.2f}<extra></extra>',
                 name="Data Points"
             ))
 
-        # Add outlier points with red squares
-        if len(outlier_indices) > 0 and np.any(outlier_mask):
+        # Add outlier points (highlighted in red)
+        if np.any(outlier_mask):
             fig.add_trace(go.Scatter(
-                x=x_array[outlier_mask],
-                y=y_array[outlier_mask],
+                x=x_data[outlier_mask],
+                y=y_data[outlier_mask],
                 mode='markers',
                 marker=dict(color="red", size=10, symbol='square'),
-                text=sample_ids_array[outlier_mask],
+                text=sample_ids[outlier_mask],
                 hovertemplate='<b>Sample ID:</b> %{text}<br><b>X:</b> %{x:.2f}<br><b>Y:</b> %{y:.2f}<br><b>Status:</b> Outlier<extra></extra>',
-                name="Outliers"
+                name="Outliers (Included)"
             ))
+        
+        # Use all data for line range when including outliers
+        x_range_data = x_data
 
     # Add regression line
-    fig.add_trace(go.Scatter(
-        x=x_line,
-        y=y_line,
-        mode='lines',
-        line=dict(color='crimson', width=2),
-        name="Regression Line"
-    ))
-
-    # Add confidence interval
-    if y_err > 0:
+    if len(x_range_data) > 0:
+        x_line = np.linspace(min(x_range_data), max(x_range_data), 100)
+        y_line = slope * x_line + intercept
+        
         fig.add_trace(go.Scatter(
-            x=np.concatenate([x_line, x_line[::-1]]),
-            y=np.concatenate([y_line - y_err, (y_line + y_err)[::-1]]),
-            fill='toself',
-            fillcolor='rgba(220, 20, 60, 0.2)',
-            line=dict(color='rgba(255,255,255,0)'),
-            hoverinfo="skip",
-            name="95% CI"
+            x=x_line,
+            y=y_line,
+            mode='lines',
+            line=dict(color='crimson', width=2),
+            name="Regression Line"
         ))
 
+        # Calculate confidence interval based on the data used for regression
+        if remove_outliers and np.any(normal_mask):
+            residuals = y_data[normal_mask] - (slope * x_data[normal_mask] + intercept)
+        else:
+            residuals = y_data - (slope * x_data + intercept)
+        
+        y_err = 1.96 * np.std(residuals) if len(residuals) > 1 else 0
+        
+        # Add confidence interval
+        if y_err > 0:
+            fig.add_trace(go.Scatter(
+                x=np.concatenate([x_line, x_line[::-1]]),
+                y=np.concatenate([y_line - y_err, (y_line + y_err)[::-1]]),
+                fill='toself',
+                fillcolor='rgba(220, 20, 60, 0.2)',
+                line=dict(color='rgba(255,255,255,0)'),
+                hoverinfo="skip",
+                name="95% CI"
+            ))
+
     # Add equation and R² to legend as invisible trace
+    n_points = np.sum(normal_mask) if remove_outliers else len(x_data)
     fig.add_trace(go.Scatter(
         x=[None], y=[None],
         mode='markers',
         marker=dict(color='rgba(0,0,0,0)', size=0),
         showlegend=True,
-        name=f"y = {slope:.4f}x + {intercept:.4f}<br>R² = {r2:.4f}, n = {len(x_array)}",
+        name=f"y = {slope:.4f}x + {intercept:.4f}<br>R² = {r2:.4f}, n = {n_points}",
         hoverinfo='skip'
     ))
 
+    # Set title based on outlier handling
+    title_suffix = " (Outliers Excluded)" if remove_outliers and np.any(outlier_mask) else ""
+    
     fig.update_layout(
-        title=f"Passing-Bablok Regression for {analyte}",
+        title=f"Passing-Bablok Regression for {analyte}{title_suffix}",
         xaxis_title=f"{analyzer_1} ({units})",
         yaxis_title=f"{analyzer_2} ({units})",
         plot_bgcolor='white',
@@ -352,8 +551,8 @@ def passing_bablok():
         1. Upload a CSV file containing `Date`, `Test`, `Analyser`, `Material`, `Sample ID`, `Batch ID`, `Lot Number`, and analyte columns.
         2. Configure analysis settings in the Settings section below.
         3. Select the two analyzers you want to compare.
-        4. Optionally enable outlier detection using Grubss` test and set parameters. Any outliers detected will be highlighted on the plots with a red square (🟥).
-        5. If outliers exclusion is enabled, they will be removed from the regression analysis.
+        4. Configure outlier detection settings and choose whether to exclude outliers from analysis.
+        5. If outlier exclusion is enabled, detected outliers will be completely removed from plots and calculations.
         6. View regression plots and statistics.
         """)
 
@@ -363,8 +562,6 @@ def passing_bablok():
     # Initialize session state variables
     if 'df' not in st.session_state:
         st.session_state.df = None
-    if 'analyzers' not in st.session_state:
-        st.session_state.analyzers = []
 
     if uploaded_file is not None:
         try:
@@ -387,176 +584,340 @@ def passing_bablok():
     if st.session_state.df is not None:
         df = st.session_state.df
         
-        # === SETTINGS SECTION IN EXPANDER ===
+        # === ENHANCED SETTINGS SECTION ===
         with st.expander("⚙️ Analysis Settings", expanded=True):
-            # Material selection
-            st.subheader("📋 Material Selection")
-            materials = sorted(df['Material'].dropna().unique().tolist())
-            material_options = ['All'] + materials
-            selected_material = st.selectbox("Select Material", material_options)
-
-            # Filter by material
-            if selected_material != "All":
-                df_filtered = df[df['Material'] == selected_material].copy()
-            else:
-                df_filtered = df.copy()
-
-            # Analyzer selection
-            st.subheader("🔬 Analyzer Selection")
-            analyzers = sorted(df_filtered['Analyser'].dropna().unique())
-            st.session_state.analyzers = analyzers
-            
-            if len(analyzers) < 2:
-                st.error("At least two analyzers are required for comparison.")
-                return
-
             col1, col2 = st.columns(2)
+            
             with col1:
-                analyzer_1 = st.selectbox("Select Reference Analyzer", analyzers)
+                st.markdown("**Basic Settings**")
+                material_type = st.selectbox("Select Material Type", df['Material'].unique())
+                analytes = df.columns[7:]  # Assuming first 7 columns are metadata
+                selected_analyte = st.selectbox("Select Analyte", analytes)
+                
             with col2:
-                analyzer_2 = st.selectbox("Select Test Analyzer", [a for a in analyzers if a != analyzer_1])
+                st.markdown("**Analyzer Selection**")
+                analyzers = df["Analyser"].unique()
+                if len(analyzers) < 2:
+                    st.warning("Need at least two analyzers in the dataset.")
+                    return
 
-            # Units selection
-            st.subheader("📏 Units Configuration")
+                analyzer_1 = st.selectbox("Select Reference Analyzer (X-axis)", analyzers, key="ref")
+                remaining_analyzers = [a for a in analyzers if a != analyzer_1]
+                analyzer_2 = st.selectbox("Select Test Analyzer (Y-axis)", remaining_analyzers, key="test")
+
+            st.markdown("**Display Settings**")
             units = st.selectbox(
                 "Select Units for Analytes",
                 options=units_list, 
                 index=0
             )
-
-            # Get analyte columns for outlier checking
-            metadata_cols = ['Date', 'Test', 'Analyser', 'Material', 'Sample ID', 'Batch ID', 'Lot Number']
-            analyte_cols = [col for col in df_filtered.columns if col not in metadata_cols]
             
-            # Outlier Detection Settings
-            st.subheader("🎯 Outlier Detection Settings")
+            st.markdown("---")
+            st.markdown("**🎯 Outlier Detection & Exclusion Settings**")
             
-            # Outlier controls - stacked vertically
-            alpha = st.slider("Significance level (α)", min_value=0.01, max_value=0.10, value=0.05, step=0.01)
-            remove_outliers = st.checkbox("Exclude outliers from regression analysis", value=False)
+            # Add significance level selection for Grubbs test
+            col3, col4 = st.columns(2)
+            with col3:
+                alpha = st.selectbox(
+                    "Significance level for statistical tests",
+                    options=[0.05, 0.01, 0.001],
+                    index=0,
+                    format_func=lambda x: f"α = {x} ({'95%' if x==0.05 else '99%' if x==0.01 else '99.9%'} confidence)"
+                )
             
-            # Check for outliers in all analytes
-            outlier_warnings = []
+            with col4:
+                # Enable outlier detection preview
+                enable_outlier_detection = st.checkbox(
+                    "Enable outlier detection", 
+                    value=True,
+                    help="Uncheck to skip outlier detection and use all data points"
+                )
             
-            for analyte in analyte_cols:
-                outlier_check = check_outliers_for_analyte(df_filtered, analyte, analyzer_1, analyzer_2, alpha)
-                if outlier_check and outlier_check['total_outliers'] > 0:
-                    outlier_warnings.append({
-                        'analyte': analyte,
-                        'count': outlier_check['total_outliers'],
-                        'samples': outlier_check['outlier_samples']
-                    })
+            # Initialize variables
+            selected_outliers = np.array([])
+            method_choice = "None"
+            exclude_outliers = False
             
-            # Display outlier status
-            if outlier_warnings:
-                st.warning(f"⚠️ **{len(outlier_warnings)} analyte(s) have outliers detected** (α = {alpha})")
+            if enable_outlier_detection:
+                # Prepare matched data for outlier detection preview
+                merged_data = prepare_matched_data(df, material_type, selected_analyte, analyzer_1, analyzer_2)
                 
-                # Use checkbox to show/hide details
-                show_outlier_details = st.checkbox("Show outlier details", value=False)
+                if len(merged_data) == 0:
+                    st.warning(f"No matching samples found between {analyzer_1} and {analyzer_2} for {selected_analyte}")
+                    return
                 
-                if show_outlier_details:
-                    st.markdown("**Outlier Details:**")
-                    for warning in outlier_warnings:
-                        st.write(f"• **{warning['analyte']}**: {warning['count']} outliers - {', '.join(warning['samples'])}")
-            else:
-                st.info(f"ℹ️ **No outliers detected** for any analyte in {selected_material} material (α = {alpha})")    
+                # Enhanced outlier detection with multiple methods
+                selected_outliers, method_choice = perform_outlier_detection_with_options(
+                    merged_data, selected_analyte, analyzer_1, analyzer_2, alpha
+                )
                 
-        # Run analysis button
-        if st.button("🚀 Run Passing Bablok Regression", type="primary"):
-            with st.spinner("Running analysis..."):
-                st.write("### 📋 Data Preview")
-                st.dataframe(df_filtered.head())
-                
-                results = []
-                outlier_summary = []
-                
-                for analyte in analyte_cols:
-                    st.write(f"### 📊 Analysis for {analyte}")
-                    
-                    result, fig, merged, outlier_info = perform_analysis(
-                        df_filtered, analyte, analyzer_1, analyzer_2, units, remove_outliers, alpha
+                # Outlier exclusion settings
+                if selected_outliers.any():
+                    st.markdown("**Outlier Handling Options**")
+                    exclude_outliers = st.checkbox(
+                        "🚫 **Exclude detected outliers from analysis**", 
+                        value=False,
+                        help="When enabled, outliers will be completely removed from plots and calculations"
                     )
                     
-                    if result:
-                        results.append(result)
-                        
-                        # Display outlier information if applicable
-                        if outlier_info and outlier_info['total_outliers'] > 0:
-                            if remove_outliers:
-                                st.info(f"ℹ️ **{outlier_info['total_outliers']} outlier(s) excluded from regression analysis for {analyte}:** {', '.join(outlier_info['outlier_samples'])}")
-                            else:
-                                st.info(f"ℹ️ **{outlier_info['total_outliers']} outlier(s) detected for {analyte}:** {', '.join(outlier_info['outlier_samples'])} (included in analysis)")
-                            
-                            outlier_summary.append({
-                                'Analyte': analyte,
-                                'Outliers_Detected': outlier_info['total_outliers'],
-                                'Outlier_Samples': ', '.join(outlier_info['outlier_samples']),
-                                'Excluded_from_Analysis': 'Yes' if remove_outliers else 'No'
-                            })
-                        
-                        # Display plot
-                        st.plotly_chart(fig, use_container_width=True)
-
-                        # Display data table
-                        with st.expander(f"📊 Data for {analyte}"):
-                            # Calculate percentage difference
-                            merged_display = merged.copy()
-                            merged_display["% Difference"] = (
-                                (merged_display[f"{analyte}_2"] - merged_display[f"{analyte}_1"]) / merged_display[f"{analyte}_1"]
-                            ) * 100
-                            merged_display["% Difference"] = merged_display["% Difference"].round(2)
-
-                            # Add outlier status column if there are outliers
-                            if outlier_info and outlier_info['total_outliers'] > 0:
-                                merged_display["Outlier"] = merged_display['Sample ID'].isin(outlier_info['outlier_samples'])
-                                merged_display["Outlier"] = merged_display["Outlier"].map({True: "Yes", False: "No"})
-
-                            # Rename columns for display
-                            display_columns = ["Sample ID", analyzer_1, analyzer_2, "% Difference"]
-                            if "Outlier" in merged_display.columns:
-                                display_columns.append("Outlier")
-                            
-                            display_df = merged_display.rename(columns={
-                                f"{analyte}_1": analyzer_1,
-                                f"{analyte}_2": analyzer_2
-                            })[display_columns]
-                            
-                            st.dataframe(display_df)
+                    if exclude_outliers:
+                        outlier_sample_ids = merged_data['Sample ID'].iloc[selected_outliers].tolist()
+                        st.error(f"⚠️ **{sum(selected_outliers)} outlier(s) will be EXCLUDED from all plots and calculations:**")
+                        st.markdown(f"**Method:** {method_choice}")
+                        st.markdown(f"**Excluded samples:** {', '.join(map(str, outlier_sample_ids))}")
+                        st.info("💡 The regression line will be calculated using only the remaining data points.")
                     else:
-                        st.warning(f"⚠ Insufficient data for {analyte}. Skipping...")
+                        st.info("ℹ️ Outliers will be **highlighted in red** on plots but **included** in calculations.")
+            else:
+                st.info("ℹ️ Outlier detection is disabled. All data points will be included in the analysis.")
 
-                # Display results summary
-                if results:
-                    st.success("✅ Analysis complete!")
-                    st.write("### 📈 Summary Results")
-                    result_df = pd.DataFrame(results)
-                    st.dataframe(result_df)
-
-                    # Download buttons
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        csv = result_df.to_csv(index=False).encode("utf-8")
-                        st.download_button(
-                            "⬇ Download Results", 
-                            csv, 
-                            "passing_bablok_results.csv", 
-                            "text/csv"
-                        )
-                    
-                    # Download outlier summary if applicable
-                    if outlier_summary:
-                        with col2:
-                            outlier_df = pd.DataFrame(outlier_summary)
-                            outlier_csv = outlier_df.to_csv(index=False).encode("utf-8")
-                            st.download_button(
-                                "⬇ Download Outlier Summary", 
-                                outlier_csv, 
-                                "outlier_summary.csv", 
-                                "text/csv"
-                            )
+        # === ANALYSIS EXECUTION ===
+        with st.expander("📈 Regression Analysis Results", expanded=True):
+            # Prepare matched data
+            merged_data = prepare_matched_data(df, material_type, selected_analyte, analyzer_1, analyzer_2)
+            
+            if len(merged_data) == 0:
+                st.warning(f"No matching samples found between {analyzer_1} and {analyzer_2} for {selected_analyte}")
+                return
+            
+            # st.info(f"Found {len(merged_data)} matching samples between analyzers.")
+            
+            # Perform analysis
+            results, fig, merged_display, outlier_info = perform_analysis(
+                df=df,
+                material_type=material_type,
+                analyte=selected_analyte,
+                analyzer_1=analyzer_1,
+                analyzer_2=analyzer_2,
+                units=units,
+                outlier_mask=selected_outliers if enable_outlier_detection else None,
+                remove_outliers=exclude_outliers,
+                alpha=alpha
+            )
+            
+            if results is None:
+                st.error("❌ Analysis failed. Please check your data and settings.")
+                return
+            
+            # Display results
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                st.plotly_chart(fig, use_container_width=True)
+            
+            with col2:
+                st.markdown("---")
+                
+                # Create results dataframe for display
+                results_df = pd.DataFrame([results]).T
+                results_df.columns = ['Value']
+                results_df.index.name = 'Parameter'
+                
+                st.dataframe(results_df, use_container_width=True)
+                
+                # Interpretation guidelines
+                slope_val = results['Slope']
+                intercept_val = results['Intercept']
+                r2_val = results['R²']
+                
+                # Slope interpretation
+                if 0.95 <= slope_val <= 1.05:
+                    slope_status = "✅ Excellent"
+                    slope_color = "green"
+                elif 0.90 <= slope_val <= 1.10:
+                    slope_status = "⚠️ Acceptable"
+                    slope_color = "orange"
                 else:
-                    st.warning("No analytes had sufficient data for analysis.")
+                    slope_status = "❌ Poor"
+                    slope_color = "red"
+                
+                # Intercept interpretation (relative to data range)
+                data_range = merged_display[f'{selected_analyte}_1'].max() - merged_display[f'{selected_analyte}_1'].min()
+                relative_intercept = abs(intercept_val) / data_range if data_range > 0 else 0
+                
+                if relative_intercept < 0.05:
+                    intercept_status = "✅ Excellent"
+                    intercept_color = "green"
+                elif relative_intercept < 0.10:
+                    intercept_status = "⚠️ Acceptable"
+                    intercept_color = "orange"
+                else:
+                    intercept_status = "❌ Poor"
+                    intercept_color = "red"
+                
+                # R² interpretation
+                if r2_val >= 0.95:
+                    r2_status = "✅ Excellent"
+                    r2_color = "green"
+                elif r2_val >= 0.90:
+                    r2_status = "⚠️ Good"
+                    r2_color = "orange"
+                elif r2_val >= 0.80:
+                    r2_status = "⚠️ Acceptable"
+                    r2_color = "orange"
+                else:
+                    r2_status = "❌ Poor"
+                    r2_color = "red"
+                st.markdown("---")
+                st.markdown(f"""
+                **Slope:** <span style="color:{slope_color}">{slope_status}</span>  
+                **Intercept:** <span style="color:{intercept_color}">{intercept_status}</span>  
+                **Correlation:** <span style="color:{r2_color}">{r2_status}</span>
+                """, unsafe_allow_html=True)
+                
+                # Method agreement summary
+                # st.markdown("### 🎯 Method Agreement Summary")
+                # if slope_status == "✅ Excellent" and intercept_status == "✅ Excellent" and r2_status == "✅ Excellent":
+                #     st.success("🎉 **Excellent agreement** between methods!")
+                # elif "❌ Poor" in [slope_status, intercept_status, r2_status]:
+                #     st.error("⚠️ **Poor agreement** - methods may not be interchangeable.")
+                # else:
+                #     st.warning("📊 **Moderate agreement** - review clinical acceptability.")
 
+        # === DATA TABLES SECTION ===
+        with st.expander("📋 Data Tables", expanded=False):
+            st.markdown("### 🔢 Matched Sample Data")
+            
+            # Prepare display dataframe with outlier information
+            display_df = merged_display.copy()
+            display_df['Mean'] = (display_df[f'{selected_analyte}_1'] + display_df[f'{selected_analyte}_2']) / 2
+            display_df['Difference'] = display_df[f'{selected_analyte}_1'] - display_df[f'{selected_analyte}_2']
+            display_df['% Difference'] = (display_df['Difference'] / display_df['Mean'] * 100).round(2)
+            
+            # Add outlier status column if outlier detection is enabled
+            if enable_outlier_detection and len(selected_outliers) > 0:
+                display_df['Outlier Status'] = ['🔴 Outlier' if is_outlier else '✅ Normal' 
+                                               for is_outlier in selected_outliers]
+                
+                # Add exclusion status if outliers are being excluded
+                if exclude_outliers:
+                    display_df['Analysis Status'] = ['❌ Excluded' if is_outlier else '✅ Included' 
+                                                   for is_outlier in selected_outliers]
+            
+            # Reorder columns for better display
+            column_order = ['Sample ID', f'{selected_analyte}_1', f'{selected_analyte}_2', 
+                          'Mean', 'Difference', '% Difference']
+            
+            if enable_outlier_detection and len(selected_outliers) > 0:
+                column_order.append('Outlier Status')
+                if exclude_outliers:
+                    column_order.append('Analysis Status')
+            
+            display_df = display_df[column_order]
+            
+            # Rename columns for clarity
+            display_df = display_df.rename(columns={
+                f'{selected_analyte}_1': f'{analyzer_1}',
+                f'{selected_analyte}_2': f'{analyzer_2}'
+            })
+            
+            st.dataframe(display_df, use_container_width=True, hide_index=True)
+            
+            # Summary statistics
+            st.markdown("### 📈 Summary Statistics")
+            summary_stats = pd.DataFrame({
+                'Statistic': ['Count', 'Mean', 'Std Dev', 'Min', 'Max', 'Median'],
+                f'{analyzer_1}': [
+                    len(display_df),
+                    display_df[analyzer_1].mean().round(4),
+                    display_df[analyzer_1].std().round(4),
+                    display_df[analyzer_1].min().round(4),
+                    display_df[analyzer_1].max().round(4),
+                    display_df[analyzer_1].median().round(4)
+                ],
+                f'{analyzer_2}': [
+                    len(display_df),
+                    display_df[analyzer_2].mean().round(4),
+                    display_df[analyzer_2].std().round(4),
+                    display_df[analyzer_2].min().round(4),
+                    display_df[analyzer_2].max().round(4),
+                    display_df[analyzer_2].median().round(4)
+                ]
+            })
+            
+            st.dataframe(summary_stats, use_container_width=True, hide_index=True)
+
+        # === EXPORT OPTIONS ===
+        with st.expander("💾 Export Options", expanded=False):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("### 📊 Export Results")
+                
+                # Prepare export data
+                export_data = {
+                    'Analysis_Type': 'Passing-Bablok Regression',
+                    'Material': material_type,
+                    'Analyte': selected_analyte,
+                    'Reference_Analyzer': analyzer_1,
+                    'Test_Analyzer': analyzer_2,
+                    'Units': units,
+                    'Sample_Count': results['n'],
+                    'Slope': results['Slope'],
+                    'Intercept': results['Intercept'],
+                    'R_Squared': results['R²'],
+                    'Outliers_Detected': sum(selected_outliers) if enable_outlier_detection else 0,
+                    'Outliers_Excluded': 'Yes' if exclude_outliers else 'No',
+                    'Detection_Method': method_choice if enable_outlier_detection else 'None',
+                    'Alpha_Level': alpha if enable_outlier_detection else 'N/A'
+                }
+                
+                export_df = pd.DataFrame([export_data])
+                csv_results = export_df.to_csv(index=False)
+                
+                st.download_button(
+                    label="📈 Download Analysis Results (CSV)",
+                    data=csv_results,
+                    file_name=f"passing_bablok_results_{selected_analyte}_{analyzer_1}_vs_{analyzer_2}.csv",
+                    mime="text/csv"
+                )
+            
+            with col2:
+                st.markdown("### 📋 Export Data")
+                
+                # Export the matched data with analysis information
+                csv_data = display_df.to_csv(index=False)
+                
+                st.download_button(
+                    label="📊 Download Matched Data (CSV)",
+                    data=csv_data,
+                    file_name=f"matched_data_{selected_analyte}_{analyzer_1}_vs_{analyzer_2}.csv",
+                    mime="text/csv"
+                )
+
+        # === ADDITIONAL INFORMATION ===
+        with st.expander("ℹ️ Additional Information", expanded=False):
+            st.markdown("### 📚 Method Information")
+            st.markdown("""
+            **Passing-Bablok Regression Features:**
+            - Non-parametric method (no assumptions about data distribution)
+            - Robust to outliers when outlier exclusion is disabled
+            - Suitable for method comparison studies
+            - Provides unbiased slope and intercept estimates
+            
+            **Interpretation Guidelines:**
+            - **Slope near 1.0:** Good proportional agreement
+            - **Intercept near 0:** Good constant agreement  
+            - **High R²:** Strong linear relationship
+            - **Combined:** Both slope ≈ 1.0 and intercept ≈ 0 indicate method equivalence
+            """)
+            
+            if enable_outlier_detection:
+                st.markdown("### 🎯 Outlier Detection Methods")
+                st.markdown(f"""
+                **Current Settings:**
+                - **Method:** {method_choice}
+                - **Significance Level:** α = {alpha}
+                - **Action:** {'Exclude from analysis' if exclude_outliers else 'Highlight but include'}
+                
+                **Method Descriptions:**
+                - **Grubbs (Single):** Detects only the most extreme outlier
+                - **Grubbs (Iterative):** Repeatedly applies Grubbs test until no more outliers found
+                - **Limits Only (±1.96σ):** Simply flags points outside ±1.96 standard deviations
+                - **Combined Method:** Uses iterative Grubbs + limit checking for comprehensive detection
+                """)
+
+# Call the function
 def run():
     passing_bablok()
 

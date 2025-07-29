@@ -11,7 +11,9 @@ from datetime import datetime
 units_list = [
     "nmol/L", "μmol/L", "mmol/L", "mol/L",        # molar concentration
     "mg/dL", "g/dL", "g/L", "kg/L",               # mass/volume
-    "ng/mL", "pg/mL", "μg/mL", "μg/dL", "μg/L",    # small mass/volume
+    "ng/mL", "ng/mL whole blood",
+    "pg/mL", "μg/mL", "μg/dL", "μg/L",
+    "IU/mL",    # small mass/volume
     "IU/L", "mIU/L", "U/L",                       # enzyme and hormone units
     "cells/μL", "cells/mL",                       # cell count
     "mEq/L",                                      # electrolytes

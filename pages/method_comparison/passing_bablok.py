@@ -431,7 +431,7 @@ def perform_analysis(df, material_type, analyte, analyzer_1, analyzer_2, units, 
     return results, fig, merged_display, outlier_info
 
 def plot_regression_plotly(analyte, x_data, y_data, sample_ids, slope, intercept, r2, analyzer_1, analyzer_2, units, outlier_mask, remove_outliers=False):
-    """Create Plotly regression plot with proper outlier handling"""
+    """Create Plotly regression plot with proper outlier handling and axis adjustment"""
     if len(x_data) == 0:
         return go.Figure()
     
@@ -440,26 +440,27 @@ def plot_regression_plotly(analyte, x_data, y_data, sample_ids, slope, intercept
     
     fig = go.Figure()
 
-    # If excluding outliers, only plot normal points and use them for line range
-    if remove_outliers:
-        if np.any(normal_mask):
-            # Only plot normal data points
-            fig.add_trace(go.Scatter(
-                x=x_data[normal_mask],
-                y=y_data[normal_mask],
-                mode='markers',
-                marker=dict(color="mediumslateblue", size=8, symbol='circle'),
-                text=sample_ids[normal_mask],
-                hovertemplate='<b>Sample ID:</b> %{text}<br><b>X:</b> %{x:.2f}<br><b>Y:</b> %{y:.2f}<extra></extra>',
-                name="Data Points"
-            ))
-            
-            # Use only normal points for line range
-            x_range_data = x_data[normal_mask]
-        else:
-            x_range_data = np.array([])
+    # Determine which data to use for plot points and axis scaling
+    if remove_outliers and np.any(normal_mask):
+        # When excluding, use only normal data for points and for axis range
+        x_plot = x_data[normal_mask]
+        y_plot = y_data[normal_mask]
+        ids_plot = sample_ids[normal_mask]
+        
+        fig.add_trace(go.Scatter(
+            x=x_plot,
+            y=y_plot,
+            mode='markers',
+            marker=dict(color="mediumslateblue", size=8, symbol='circle'),
+            text=ids_plot,
+            hovertemplate='<b>Sample ID:</b> %{text}<br><b>X:</b> %{x:.2f}<br><b>Y:</b> %{y:.2f}<extra></extra>',
+            name="Data Points"
+        ))
     else:
-        # Include all points but distinguish outliers
+        # When including outliers, plot both sets but use all data for axis range
+        x_plot = x_data
+        y_plot = y_data
+        
         # Add normal data points
         if np.any(normal_mask):
             fig.add_trace(go.Scatter(
@@ -483,13 +484,20 @@ def plot_regression_plotly(analyte, x_data, y_data, sample_ids, slope, intercept
                 hovertemplate='<b>Sample ID:</b> %{text}<br><b>X:</b> %{x:.2f}<br><b>Y:</b> %{y:.2f}<br><b>Status:</b> Outlier<extra></extra>',
                 name="Outliers (Included)"
             ))
-        
-        # Use all data for line range when including outliers
-        x_range_data = x_data
 
-    # Add regression line
-    if len(x_range_data) > 0:
-        x_line = np.linspace(min(x_range_data), max(x_range_data), 100)
+    # --- FIX: Calculate axis limits based on VISIBLE data only ---
+    if len(x_plot) > 0:
+        # Find the min/max across both x and y of the visible data
+        min_val = min(np.min(x_plot), np.min(y_plot))
+        max_val = max(np.max(x_plot), np.max(y_plot))
+        
+        # Add 5% padding for better visualization
+        padding = (max_val - min_val) * 0.05
+        axis_min = min_val - padding
+        axis_max = max_val + padding
+
+        # Use the visible data range for the regression line
+        x_line = np.linspace(np.min(x_plot), np.max(x_plot), 100)
         y_line = slope * x_line + intercept
         
         fig.add_trace(go.Scatter(
@@ -500,28 +508,17 @@ def plot_regression_plotly(analyte, x_data, y_data, sample_ids, slope, intercept
             name="Regression Line"
         ))
 
-        # Calculate confidence interval based on the data used for regression
-        if remove_outliers and np.any(normal_mask):
-            residuals = y_data[normal_mask] - (slope * x_data[normal_mask] + intercept)
-        else:
-            residuals = y_data - (slope * x_data + intercept)
-        
-        y_err = 1.96 * np.std(residuals) if len(residuals) > 1 else 0
-        
-        # Add confidence interval
-        if y_err > 0:
-            fig.add_trace(go.Scatter(
-                x=np.concatenate([x_line, x_line[::-1]]),
-                y=np.concatenate([y_line - y_err, (y_line + y_err)[::-1]]),
-                fill='toself',
-                fillcolor='rgba(220, 20, 60, 0.2)',
-                line=dict(color='rgba(255,255,255,0)'),
-                hoverinfo="skip",
-                name="95% CI"
-            ))
-
-    # Add equation and R² to legend as invisible trace
-    n_points = np.sum(normal_mask) if remove_outliers else len(x_data)
+        # --- FIX: Update Line of Identity to use the new, adjusted axis limits ---
+        fig.add_trace(go.Scatter(
+            x=[axis_min, axis_max],
+            y=[axis_min, axis_max],
+            mode='lines',
+            line=dict(color='gray', dash='dash'),
+            name='Line of Identity (y = x)'
+        ))
+    
+    # Add equation and R² to legend
+    n_points = np.sum(normal_mask) if remove_outliers and np.any(outlier_mask) else len(x_data)
     fig.add_trace(go.Scatter(
         x=[None], y=[None],
         mode='markers',
@@ -531,16 +528,7 @@ def plot_regression_plotly(analyte, x_data, y_data, sample_ids, slope, intercept
         hoverinfo='skip'
     ))
 
-    # Add line of identity (y=x)
-    fig.add_trace(go.Scatter(
-        x=[x_data.min(), x_data.max()],
-        y=[x_data.min(), x_data.max()],
-        mode='lines',
-        line=dict(color='gray', dash='dash'),
-        name='Line of Identity (y = x)'
-    ))
-
-    # Set title based on outlier handling
+    # Set title and update layout
     title_suffix = " (Outliers Excluded)" if remove_outliers and np.any(outlier_mask) else ""
     
     fig.update_layout(
@@ -550,6 +538,9 @@ def plot_regression_plotly(analyte, x_data, y_data, sample_ids, slope, intercept
         plot_bgcolor='white',
         showlegend=True,
         title_font=dict(size=16),
+        # --- FIX: Explicitly set the axis ranges to match the visible data ---
+        xaxis_range=[axis_min, axis_max],
+        yaxis_range=[axis_min, axis_max]
     )
 
     return fig

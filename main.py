@@ -59,6 +59,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.sidebar.header("🔍 Validation Processes")
+
+
 st.sidebar.info("Select a validation process from the sidebar above.")
 st.balloons()
 
@@ -116,8 +118,9 @@ with st.container():
     st.markdown("""
 
     Welcome to the **Validation and Statistics App** — your comprehensive tool designed specifically for laboratory professionals seeking to streamline and enhance the process of analytical method validation and verification.
-
-    This app offers a **user-friendly interface** to perform a broad range of essential statistical analyses critical to ensuring data quality and compliance with regulatory standards. 
+    Please note, an updated version of this app is available at: [https://stats-veritas.streamlit.app/]. Please migrate to the new version for the latest features and improvements.
+    
+                This app offers a **user-friendly interface** to perform a broad range of essential statistical analyses critical to ensuring data quality and compliance with regulatory standards. 
 
     ### Why Use This App?
 

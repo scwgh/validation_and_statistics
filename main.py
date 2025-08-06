@@ -118,12 +118,13 @@ with st.container():
     st.markdown("""
 
     Welcome to the **Validation and Statistics App** — your comprehensive tool designed specifically for laboratory professionals seeking to streamline and enhance the process of analytical method validation and verification.
-    Please note, an updated version of this app is available at: [https://stats-veritas.streamlit.app/]. Please migrate to the new version for the latest features and improvements.
+    \n ### Please note, an updated version of this app is available at: [https://stats-veritas.streamlit.app/]. 
+    \n ### Please migrate to the new version for the latest features and improvements.
     
-                This app offers a **user-friendly interface** to perform a broad range of essential statistical analyses critical to ensuring data quality and compliance with regulatory standards. 
-
-    ### Why Use This App?
-
+    ---
+                
+    \n ### Why Use This App?
+    - **Comprehensive Validation Tools:** Covers all key aspects of method validation, including imprecision, linearity, limits of detection, and method comparison.
     - **Simplifies Complex Statistics:** No advanced programming knowledge needed—intuitive controls guide you through each analysis step.
     - **Saves Time:** Automates calculations and generates clear visualizations and reports instantly.
     - **Improves Data Confidence:** Helps you identify measurement variability, biases, and method performance issues early.
